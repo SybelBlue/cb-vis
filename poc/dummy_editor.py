@@ -11,4 +11,5 @@ def onclick():
 print(x)
 onclick()
 print(x, \
-    'test')
+    'te' + \
+        'st')

@@ -56,7 +56,7 @@ class CodeBlock:
         return locals
 
 
-def next_block(line_iter: PeekableLines) -> CodeBlock:
+def next_block(line_iter: PeekableLines, skip_empty=True) -> CodeBlock:
     if not line_iter:
         return None
 
@@ -74,7 +74,7 @@ def next_block(line_iter: PeekableLines) -> CodeBlock:
             p, = line_iter.peek()
             if ins.indentsize(p) <= indent:
                 break
-            body.append(next_block(line_iter))
+            body.append(next_block(line_iter, skip_empty=False))
         out = replace(out, body=body)
 
     if stripped.endswith('\\'):
@@ -87,7 +87,7 @@ def next_block(line_iter: PeekableLines) -> CodeBlock:
             headline=line + rest.headline
         )
 
-    if not stripped or stripped.startswith('#'):
+    if skip_empty and (not stripped or stripped.startswith('#')):
         return next_block(line_iter)
 
     return out
