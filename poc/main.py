@@ -1,7 +1,12 @@
 import inspect as ins
+from dataclasses import dataclass, replace
 
+class PeekableLines:
+    @staticmethod
+    def from_file(path) -> 'PeekableLines':
+        with open(path, 'r') as f:
+            return PeekableLines(f.readlines())
 
-class Peekable:
     def __init__(self, data) -> None:
         self.data = iter(data)
         self.peeked = None  # None, False, or (_,)
@@ -33,11 +38,25 @@ class Peekable:
         return bool(self.peek())
 
 
-def next_execable(line_iter: Peekable):
+@dataclass(init=True, repr=True, frozen=True)
+class CodeBlock:
+    headline: str
+    headlineno: int
+    body: list[str] = None
+
+    def code(self):
+        if not self.body:
+            return self.headline
+        return self.headline + self.body
+
+
+def next_block(line_iter: PeekableLines) -> CodeBlock:
     if not line_iter:
         return None
 
+    lineno = ls.index + 1
     line = next(line_iter)
+    out = CodeBlock(line, lineno)
 
     indent = ins.indentsize(line)
 
@@ -50,34 +69,33 @@ def next_execable(line_iter: Peekable):
             if ins.indentsize(p) <= indent:
                 break
             body += next(line_iter)
-        line += body
+        out = replace(out, body=body)
 
     if stripped.endswith('\\'):
-        rest = next_execable(line_iter)
+        rest = next_block(line_iter)
         if rest is None:
             return None
-        return line + rest
+        return replace(out, headline=line + rest.headline)
 
     if not stripped or stripped.startswith('#'):
-        return next_execable(line_iter)
+        return next_block(line_iter)
 
-    return line
-
+    return out
 
 class Debugger:
     def __init__(self):
         self.globals = dict()
         self.user_names = set()
 
-    def advance(self, line_iter: Peekable):
-        lineno = ls.index + 1
-        l = next_execable(line_iter)
-        if l is None:
+    def advance(self, line_iter: PeekableLines):
+        codeblock = next_block(line_iter)
+        if codeblock is None:
             return
-        print('highlight line', lineno)
+        
+        print('highlight line', codeblock.headlineno)
         try:
             locals = dict()
-            exec(l, self.globals, locals)
+            exec(codeblock.code(), self.globals, locals)
             if locals:
                 print(locals)
                 self.globals.update(locals)
@@ -87,9 +105,7 @@ class Debugger:
 
 
 if __name__ == '__main__':
-    with open('poc/dummy_editor.py', 'r') as f:
-        ls = Peekable(f.readlines())
-
+    ls = PeekableLines.from_file('poc/dummy_editor.py')
     db = Debugger()
 
     while ls:
