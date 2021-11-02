@@ -114,7 +114,7 @@ class Debugger:
 
 
 if __name__ == '__main__':
-    ls = PeekableLines.from_file('poc/dummy_editor.py')
+    ls = PeekableLines.from_file('test/dummy_editor.py')
     db = Debugger()
 
     while ls:
