@@ -1,4 +1,4 @@
-from ast_mapper import StatementExtractor
+from statement_extractor import StatementExtractor
 from debugger import Debugger
 
 
