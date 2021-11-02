@@ -6,7 +6,11 @@ class StatementExtractor(NodeVisitor):
         with open(path, 'r') as f:
             ls = ''.join(f.readlines())
 
-        return StatementExtractor().visit(parse(ls))
+        return StatementExtractor.extract(parse(ls))
+    
+    @staticmethod
+    def extract(node: AST) -> list[stmt]:
+        return StatementExtractor().visit(node)
     
     def __init__(self):
         super().__init__()
