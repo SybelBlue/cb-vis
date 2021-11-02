@@ -1,15 +1,15 @@
-from ast import stmt
+from ast import stmt, unparse
 
 class Debugger:
     def __init__(self):
         self.globals = dict()
         self.user_names = dict()
 
-    def advance(self, statement: stmt):
-        print('highlight line(s)', *range(statement.lineno, statement.end_lineno))
+    def run(self, statement: stmt):
+        print('highlight line(s)', *range(statement.lineno, statement.end_lineno + 1))
         try:
             locals = dict()
-            exec(self.code(), globals, locals)
+            exec(unparse(statement), self.globals, locals)
             if locals:
                 print(locals)
                 self.globals.update(locals)

@@ -4,6 +4,8 @@ from ast import *
 
 from dataclasses import dataclass
 
+from debugger import Debugger
+
 
 @dataclass
 class SourceFileMap:
@@ -31,4 +33,14 @@ if __name__ == '__main__':
     code = parse(ls, 'editor.py')
 
     top_level_statements = StatementExtractor().visit(code)
-    
+
+    db = Debugger()
+
+    for s in top_level_statements:
+        # cmd = input('>')
+        # if not cmd:
+        #     db.run(s)
+        # elif cmd.lower() == 'q':
+        #     break
+        db.run(s)
+
