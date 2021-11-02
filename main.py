@@ -5,7 +5,7 @@ from debugger import Debugger
 if __name__ == '__main__':
     top_level_statements = StatementExtractor.extract_from_file('test/dummy_editor.py')
 
-    db = Debugger(lambda s: db.run(s))
+    db = Debugger()
 
     for s in top_level_statements:
         # cmd = input('>')
