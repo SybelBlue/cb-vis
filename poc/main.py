@@ -42,12 +42,18 @@ class PeekableLines:
 class CodeBlock:
     headline: str
     headlineno: int
-    body: list[str] = None
+    headlinelen: int = 1
+    body: list['CodeBlock'] = None
 
     def code(self):
         if not self.body:
             return self.headline
-        return self.headline + self.body
+        return self.headline + ''.join(block.code() for block in self.body)
+    
+    def exec(self, globals=None):
+        locals = dict()
+        exec(self.code(), globals, locals)
+        return locals
 
 
 def next_block(line_iter: PeekableLines) -> CodeBlock:
@@ -63,19 +69,23 @@ def next_block(line_iter: PeekableLines) -> CodeBlock:
     stripped = line.strip()
 
     if stripped.endswith(':'):
-        body = ''
+        body = list()
         while line_iter:
             p, = line_iter.peek()
             if ins.indentsize(p) <= indent:
                 break
-            body += next(line_iter)
+            body.append(next_block(line_iter))
         out = replace(out, body=body)
 
     if stripped.endswith('\\'):
         rest = next_block(line_iter)
         if rest is None:
             return None
-        return replace(out, headline=line + rest.headline)
+        return replace(
+            out, 
+            headlinelen=1+rest.headlinelen, 
+            headline=line + rest.headline
+        )
 
     if not stripped or stripped.startswith('#'):
         return next_block(line_iter)
@@ -85,21 +95,20 @@ def next_block(line_iter: PeekableLines) -> CodeBlock:
 class Debugger:
     def __init__(self):
         self.globals = dict()
-        self.user_names = set()
+        self.user_names = dict()
 
     def advance(self, line_iter: PeekableLines):
         codeblock = next_block(line_iter)
         if codeblock is None:
             return
         
-        print('highlight line', codeblock.headlineno)
+        print('highlight line(s)', *(codeblock.headlineno + i for i in range(codeblock.headlinelen)))
         try:
-            locals = dict()
-            exec(codeblock.code(), self.globals, locals)
+            locals = codeblock.exec(self.globals)
             if locals:
                 print(locals)
                 self.globals.update(locals)
-                self.user_names.update(locals.keys())
+                self.user_names.update({k: codeblock for k in locals.keys()})
         except Exception as e:
             print(e)
 
