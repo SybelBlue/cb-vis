@@ -38,6 +38,7 @@ class ASTDebugger(NodeVisitor):
                 for x in self.visit(c):
                     yield x
         else:
+            print('missed', unparse(node))
             yield self.exec_in_scope(node)
 
     def visit_Assign(self, node: Assign) -> Any:
@@ -51,12 +52,18 @@ class ASTDebugger(NodeVisitor):
         yield (self.locals or self.globals)[unparse(node.target)]
 
     def visit_Expr(self, node: Expr) -> Any:
-        if isinstance(node.value, Call):
-            self.locals = LocalsStack(self.locals)
+        for c in iter_child_nodes(node):
+            for x in self.visit(c):
+                yield x
+    
+    def visit_Call(self, node: Call) -> Any:
+        self.locals = LocalsStack(self.locals)
         v = self.exec_in_scope(node)
-        if isinstance(node.value, Call):
-            self.locals = self.locals.prev
+        self.locals = self.locals.prev
         yield v
+    
+    def visit_Return(self, node: Return) -> Any:
+        yield self.eval_in_scope(node.value)
     
     def exec_in_scope(self, node: AST):
         return exec(unparse(node), self.globals, self.locals and self.locals.data)
