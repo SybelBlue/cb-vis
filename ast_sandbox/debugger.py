@@ -1,20 +1,69 @@
 from ast import *
 from typing import *
 
+from dataclasses import dataclass, field
+
 from os.path import join, split
 
+@dataclass(frozen=True, init=True, repr=True)
+class LocalsStack:
+    prev: 'LocalsStack'
+    data: dict[str, Any] = field(default_factory=dict)
+
+    def flatten(self) -> dict[str, Any]:
+        out = self.prev.flatten() if self.prev else dict()
+        out.update(self.data)
+        return out
+    
+    def __setitem__(self, name, val):
+        self.data[name] = val
+    
+    def __getitem(self, name):
+        return self.data[name]
 
 class ASTDebugger(NodeVisitor):
     def __init__(self) -> None:
         super().__init__()
-
-    def visit(self, node: AST) -> Iterable[stmt]:
-        if isinstance(node, stmt):
-            yield node
-        else:
-            for n in iter_child_nodes(node):
-                for x in self.visit(n):
+        self.globals = dict()
+        self.locals = None
+    
+    def visit(self, node):
+        """Visit a node."""
+        method = 'visit_' + node.__class__.__name__
+        if hasattr(self, method):
+            for x in getattr(self, method)(node):
+                yield x
+        elif isinstance(node, mod):
+            for c in iter_child_nodes(node):
+                for x in self.visit(c):
                     yield x
+        else:
+            yield self.exec_in_scope(node)
+
+    def visit_Assign(self, node: Assign) -> Any:
+        v = self.eval_in_scope(node.value)
+        for t in node.targets:
+            (self.locals or self.globals)[unparse(t)] = v
+        yield v
+    
+    def visit_AugAssign(self, node: AugAssign) -> Any:
+        self.exec_in_scope(node)
+        yield (self.locals or self.globals)[unparse(node.target)]
+
+    def visit_Expr(self, node: Expr) -> Any:
+        if isinstance(node.value, Call):
+            self.locals = LocalsStack(self.locals)
+        v = self.exec_in_scope(node)
+        if isinstance(node.value, Call):
+            self.locals = self.locals.prev
+        yield v
+    
+    def exec_in_scope(self, node: AST):
+        return exec(unparse(node), self.globals, self.locals and self.locals.data)
+    
+    def eval_in_scope(self, node: AST):
+        return eval(unparse(node), self.globals, self.locals and self.locals.data)
+
 
 
 
@@ -24,8 +73,8 @@ def __main__():
         code = ''.join(f.readlines())
     db = ASTDebugger()
     for x in db.visit(parse(code)):
-        input(';')
-        print(dump(x))
+        # input(';')
+        print('>', x, db.locals)
 
 
 if __name__ == '__main__':
