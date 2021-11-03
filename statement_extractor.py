@@ -1,27 +1,24 @@
 from ast import *
+from typing import Iterable
 
 class StatementExtractor(NodeVisitor):
     @staticmethod
-    def extract_from_file(path) -> list[stmt]:
+    def extract_from_file(path) -> Iterable[stmt]:
         with open(path, 'r') as f:
             ls = ''.join(f.readlines())
 
         return StatementExtractor.extract(parse(ls))
     
     @staticmethod
-    def extract(node: AST) -> list[stmt]:
+    def extract(node: AST) -> Iterable[stmt]:
         return StatementExtractor().visit(node)
     
-    def __init__(self):
-        super().__init__()
-        self.stmts = list()
-    
-    def visit(self, node: AST) -> list[stmt]:
+    def visit(self, node: AST) -> Iterable[stmt]:
         if isinstance(node, stmt):
-            self.stmts.append(node)
+            yield node
         else:
             for child in iter_child_nodes(node):
-                self.visit(child)
-        return self.stmts
+                for x in self.visit(child):
+                    yield x
 
 
