@@ -10,10 +10,11 @@ class ASTDebugger(NodeVisitor):
 
     def visit(self, node: AST) -> Iterable[stmt]:
         if isinstance(node, stmt):
-            yield dump(node)
-        for n in iter_child_nodes(node):
-            for x in self.visit(n):
-                yield x
+            yield node
+        else:
+            for n in iter_child_nodes(node):
+                for x in self.visit(n):
+                    yield x
 
 
 
@@ -24,7 +25,7 @@ def __main__():
     db = ASTDebugger()
     for x in db.visit(parse(code)):
         input(';')
-        print(x)
+        print(dump(x))
 
 
 if __name__ == '__main__':
