@@ -1,6 +1,8 @@
 from ast import *
 from typing import *
 
+import inspect as ins
+
 from dataclasses import dataclass, field
 
 from os.path import join, split
@@ -18,14 +20,21 @@ class LocalsStack:
     def __setitem__(self, name, val):
         self.data[name] = val
     
-    def __getitem(self, name):
+    def __getitem__(self, name):
         return self.data[name]
+    
+    def __contains__(self, name):
+        return name in self.data
 
 class ASTDebugger(NodeVisitor):
     def __init__(self) -> None:
         super().__init__()
         self.globals = dict()
         self.locals = None
+        self.funcs: dict[str, FunctionDef] = dict()
+    
+    def lookup(self, name):
+        return (self.locals if self.locals and name in self.locals else self.globals)[name]
     
     def visit(self, node):
         """Visit a node."""
@@ -40,6 +49,10 @@ class ASTDebugger(NodeVisitor):
         else:
             print('missed', unparse(node))
             yield self.exec_in_scope(node)
+        
+    def visit_FunctionDef(self, node: FunctionDef) -> Any:
+        self.funcs[node.name] = node
+        yield self.exec_in_scope(node)
 
     def visit_Assign(self, node: Assign) -> Any:
         v = self.eval_in_scope(node.value)
@@ -58,7 +71,12 @@ class ASTDebugger(NodeVisitor):
     
     def visit_Call(self, node: Call) -> Any:
         self.locals = LocalsStack(self.locals)
-        v = self.exec_in_scope(node)
+        if isinstance(node.func, Name) and node.func.id in self.funcs:
+            f = self.lookup(node.func.id)
+            f_def = self.funcs[node.func.id]
+            sig = ins.signature(f)
+        else:
+            v = self.exec_in_scope(node)
         self.locals = self.locals.prev
         yield v
     
