@@ -77,8 +77,8 @@ class ASTDebugger(NodeVisitor):
             sig = ins.signature(f)
         else:
             v = self.exec_in_scope(node)
-        self.locals = self.locals.prev
-        yield v
+            self.locals = self.locals.prev
+            yield v
     
     def visit_Return(self, node: Return) -> Any:
         yield self.eval_in_scope(node.value)
