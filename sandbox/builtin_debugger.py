@@ -1,6 +1,8 @@
 from types import FrameType
 from typing import *
 
+import asyncio as aio
+
 from bdb import Bdb
 
 from os.path import join, split
@@ -15,23 +17,28 @@ class Debugger(Bdb):
     # to gain control.
 
     def trace_dispatch(self, frame: FrameType, event: str, arg: Any):
-        return super().trace_dispatch(frame, event, arg)
+        sup = super()
+        async def inner():
+            print('trace', event, frame, arg)
+            await aio.sleep(0.5)
+            return sup.trace_dispatch(frame, event, arg)
+        return aio.run(inner())
 
-    def user_call(self, frame, argument_list):
-        """Called if we might stop in a function."""
-        print('call', frame, argument_list)
+    # def user_call(self, frame, argument_list):
+    #     """Called if we might stop in a function."""
+    #     print('call', frame, argument_list)
 
-    def user_line(self, frame):
-        """Called when we stop or break at a line."""
-        print('line', frame)
+    # def user_line(self, frame):
+    #     """Called when we stop or break at a line."""
+    #     print('line', frame)
     
-    def user_return(self, frame, return_value):
-        """Called when a return trap is set here."""
-        print('return', frame, return_value)
+    # def user_return(self, frame, return_value):
+    #     """Called when a return trap is set here."""
+    #     print('return', frame, return_value)
 
-    def user_exception(self, frame, exc_info):
-        """Called when we stop on an exception."""
-        print('exception', frame, exc_info)
+    # def user_exception(self, frame, exc_info):
+    #     """Called when we stop on an exception."""
+    #     print('exception', frame, exc_info)
 
 
 def __main__():
