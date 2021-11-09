@@ -16,6 +16,9 @@ class LocalsStack:
         out = self.prev.flatten() if self.prev else dict()
         out.update(self.data)
         return out
+
+    def extend(self, map_iter: Mapping[str, Any]) -> None:
+        self.data.update(map_iter)
     
     def __setitem__(self, name, val):
         self.data[name] = val
@@ -74,12 +77,22 @@ class ASTDebugger(NodeVisitor):
         if isinstance(node.func, Name) and node.func.id in self.funcs:
             f = self.lookup(node.func.id)
             f_def = self.funcs[node.func.id]
-            sig = ins.signature(f)
+            sig = ins.signature(f) \
+                .bind(
+                    *tuple(map(unparse, node.args)), 
+                    **{kv.arg: unparse(kv.value) for kv in node.keywords})
+            sig.apply_defaults()
+            
+            self.locals.extend(sig.arguments)
+            print(self.locals.flatten())
+            for c in f_def.body:
+                for x in self.visit(c):
+                    yield x
         else:
             v = self.exec_in_scope(node)
             self.locals = self.locals.prev
             yield v
-    
+
     def visit_Return(self, node: Return) -> Any:
         yield self.eval_in_scope(node.value)
     
