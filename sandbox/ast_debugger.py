@@ -43,34 +43,33 @@ class ASTDebugger(NodeVisitor):
         """Visit a node."""
         method = 'visit_' + node.__class__.__name__
         if hasattr(self, method):
-            for x in getattr(self, method)(node):
-                yield x
+            out = getattr(self, method)(node)
+            if ins.isgenerator(out):
+                yield from out
+            elif out is not None:
+                yield out 
         elif isinstance(node, mod):
             for c in iter_child_nodes(node):
-                for x in self.visit(c):
-                    yield x
+                yield from self.visit(c)
         else:
             print('missed', unparse(node))
             yield self.exec_in_scope(node)
         
     def visit_FunctionDef(self, node: FunctionDef) -> Any:
         self.funcs[node.name] = node
-        yield self.exec_in_scope(node)
+        self.exec_in_scope(node)
 
     def visit_Assign(self, node: Assign) -> Any:
         v = self.eval_in_scope(node.value)
         for t in node.targets:
             (self.locals or self.globals)[unparse(t)] = v
-        yield v
     
     def visit_AugAssign(self, node: AugAssign) -> Any:
         self.exec_in_scope(node)
-        yield (self.locals or self.globals)[unparse(node.target)]
 
     def visit_Expr(self, node: Expr) -> Any:
         for c in iter_child_nodes(node):
-            for x in self.visit(c):
-                yield x
+            yield from self.visit(c)
     
     def visit_Call(self, node: Call) -> Any:
         self.locals = LocalsStack(self.locals)
@@ -79,7 +78,7 @@ class ASTDebugger(NodeVisitor):
             f_def = self.funcs[node.func.id]
             sig = ins.signature(f) \
                 .bind(
-                    *tuple(map(unparse, node.args)), 
+                    *[x for c in node.args for x in self.visit(c)], 
                     **{kv.arg: unparse(kv.value) for kv in node.keywords})
             sig.apply_defaults()
             
@@ -107,8 +106,9 @@ class ASTDebugger(NodeVisitor):
 
 
 def __main__():
-    with open(join(split(__file__)[0], '../test/dummy_editor.py'), 'r') as f:
-        code = ''.join(f.readlines())
+    # with open(join(split(__file__)[0], '../test/dummy_editor.py'), 'r') as f:
+    #     code = ''.join(f.readlines())
+    code = 'def test(x):\n return x + 2\n\ntest(9)'
     db = ASTDebugger()
     for x in db.visit(parse(code)):
         # input(';')
