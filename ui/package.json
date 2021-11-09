@@ -6,11 +6,12 @@
     "build": "tsc && vite build",
     "serve": "vite preview",
     "check:ts": "tsc --noEmit",
-    "lint": "eslint . --ext .tsx",
+    "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write src"
   },
   "dependencies": {
     "jotai": "^1.4.2",
+    "pyodide": "^0.18.2",
     "react": "^17.0.0",
     "react-ace": "^9.5.0",
     "react-dom": "^17.0.0"
