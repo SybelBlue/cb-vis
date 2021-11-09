@@ -42,7 +42,7 @@ class Debugger(Bdb):
     user_call = partialmethod(user, CallTraceData)
     user_line = partialmethod(user, LineTraceData)
     user_return = partialmethod(user, ReturnTraceData)
-    user_call = partialmethod(user, ExceptionTraceData)
+    user_exception = partialmethod(user, ExceptionTraceData)
 
 
 def __main__():
@@ -50,8 +50,10 @@ def __main__():
         code = ''.join(f.readlines())
 
     record = list()
-    db = Debugger(record.append)
     gs, reg = dict(), globals()
+    def wait(x):
+        record.append(x)
+    db = Debugger(wait)
     db.run(code, gs)
     ls = {k: v for k, v in gs.items() if k not in reg}
     
