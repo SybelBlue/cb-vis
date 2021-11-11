@@ -10,6 +10,13 @@ import type { Pyodide } from './types/pyodide';
 import type { EditorError } from './types/editor';
 import styles from './App.module.css';
 
+// TODO: window.document needs to satsify:
+// interface PythonBridge {
+//   getIframeState: () => string,
+//   getUserCode: () => string,
+//   reportRecord: (list_of_json: string) => void,
+// }
+
 const App: React.FC = () => {
   const [htmlSource, setHtmlSource] = useAtom(documentAtom);
   const [pythonSource, setPythonSource] = useAtom(programAtom);
