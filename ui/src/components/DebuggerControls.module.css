@@ -1,4 +1,26 @@
 .debugger-controls {
   height: 40px;
-  border: 2px solid steelblue;
+  background: var(--editor-primary);
+  border-top: 1px solid var(--text-primary);
+  display: flex;
+  align-items: center;
+}
+
+.debugger-controls__button {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 var(--spacing-md);
+  background: none;
+  border: none;
+  color: var(--text-primary);
+}
+
+.debugger-controls__button:hover {
+  background: var(--editor-secondary);
+}
+
+.debugger-controls__icon {
+  padding-right: var(--spacing-sm);
+  cursor: pointer;
 }

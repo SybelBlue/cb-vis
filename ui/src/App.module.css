@@ -1,8 +1,6 @@
 .panel {
-  grid-column: span 1;
-  grid-row: span 1;
-  border: 1px solid #ffffff;
   display: flex;
   flex-direction: column;
   position: relative;
+  border: 1px solid var(--text-primary);
 }
