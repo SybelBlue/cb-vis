@@ -77,9 +77,9 @@ def get_user_code():
     try:
         import js
         return js.document.getUserCode()
-    except:
+    except Exception:
         from os.path import join, split
-        with open(join(split(__file__)[0], '../test/dummy_editor.py'), 'r') as f:
+        with open(join(split(__file__)[0], 'test/dummy_editor.py'), 'r') as f:
             return f.read()
 
 
