@@ -1,10 +1,12 @@
+from io import StringIO
 from typing import *
 
-from functools import partialmethod
+from functools import partial, partialmethod
 from types import FrameType
 from dataclasses import fields, dataclass
 from bdb import Bdb
 from json import dumps
+from contextlib import redirect_stdout, redirect_stderr
 
 
 def safe_serialize(obj, first_call=True):
@@ -59,6 +61,13 @@ class ExceptionTraceData(TraceData):
     exc_info: Any
 
 
+def with_std(src_fn: Callable, stdout: StringIO, stderr: StringIO):
+    def inner(*args, **kwargs):
+        with redirect_stderr(stderr), redirect_stdout(stdout):
+            return src_fn(*args, **kwargs)
+    return inner
+
+
 class Debugger(Bdb):
     def __init__(self, trace_fn: Callable[[TraceData], None], skip=None) -> None:
         super().__init__(skip=skip)
@@ -87,9 +96,11 @@ def __main__():
     code = get_user_code()
     record = list()
     gs, reg = dict(), globals()
+    std = StringIO(), StringIO()
 
     def log(x: TraceData):
         x_dict = x.to_dict()
+        x_dict['stdout'], x_dict['stderr'] = (x.getvalue() for x in std)
         try:
             import js
             x_dict['iframestate'] = js.document.getIframeState()
@@ -98,7 +109,7 @@ def __main__():
         record.append(x_dict)
 
     db = Debugger(log)
-    db.run(code, gs)
+    with_std(db.run, *std)(code, gs)
 
     try:
         import js
