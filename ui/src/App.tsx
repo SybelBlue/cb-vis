@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useAtom } from 'jotai';
+import { interpret } from 'xstate';
 
 import Editor from './components/Editor';
 import DebuggerControls from './components/DebuggerControls';
@@ -9,6 +10,7 @@ import { getExceptionLineNumber } from './helpers/traceback';
 import type { Pyodide } from './types/pyodide';
 import type { EditorError } from './types/editor';
 import styles from './App.module.css';
+import debuggerMachine from './helpers/debugger-fsm';
 
 // TODO: window.document needs to satsify:
 // interface PythonBridge {
@@ -24,6 +26,9 @@ const App: React.FC = () => {
   const pyodide = React.useRef<Pyodide | null>(null);
   const [pyodideInitialized, setPyodideInitialized] = React.useState(false);
   const [pythonError, setPythonError] = React.useState<EditorError>();
+
+  const debuggerService = interpret(debuggerMachine)
+    // .onTransition((state) => console.log(state));
 
   React.useEffect(() => {
     if (!pyodideInitialized) {

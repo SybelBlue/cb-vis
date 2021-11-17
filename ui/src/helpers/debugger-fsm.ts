@@ -45,13 +45,13 @@ const debuggerMachine = createMachine<Context, Event>(
       idle: {
         on: {
           NEXT: {
-            actions: ['next', 'debug'],
+            actions: ['next'],
           },
           PREV: {
-            actions: ['prev', 'debug'],
+            actions: ['prev'],
           },
           LOAD: {
-            actions: ['activate', 'debug'],
+            actions: ['activate'],
           },
           STOP: {
             target: 'stopped',
@@ -63,8 +63,6 @@ const debuggerMachine = createMachine<Context, Event>(
   },
   {
     actions: {
-      // eslint-disable-next-line no-console
-      debug: console.log,
       next: delta(1),
       prev: delta(-1),
     },
