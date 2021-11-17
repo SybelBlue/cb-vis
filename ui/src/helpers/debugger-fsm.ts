@@ -29,9 +29,9 @@ const delta = (d: number): AssignAction<Context, Event> =>
 const debuggerMachine = createMachine<Context, Event>(
   {
     context: { index: 0, data: [] },
-    initial: 'uninit',
+    initial: 'stopped',
     states: {
-      uninit: {
+      stopped: {
         on: {
           LOAD: {
             target: 'idle',
@@ -54,7 +54,7 @@ const debuggerMachine = createMachine<Context, Event>(
             actions: ['activate', 'debug'],
           },
           STOP: {
-            target: 'uninit',
+            target: 'stopped',
             actions: ['debug'],
           },
         },
