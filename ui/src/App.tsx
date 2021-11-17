@@ -44,22 +44,28 @@ const App: React.FC = () => {
       };
 
       initPyodide();
-    } else {
-      try {
-        pyodide.current?.runPython(pythonSource);
+    }
+  }, [pyodideInitialized]);
+
+  const executePython = React.useCallback(() => {
+    try {
+      pyodide.current?.runPython(pythonSource);
+
+      // If we have an existing error flagged from a previous execution, remove it.
+      if (pythonError) {
         setPythonError(undefined);
-      } catch (err) {
-        if (
-          err instanceof Error &&
-          err.name === pyodide.current?.PythonError.name
-        ) {
-          setPythonError({
-            lineNumber: getExceptionLineNumber(err.message),
-          });
-        }
+      }
+    } catch (err) {
+      if (
+        err instanceof Error &&
+        err.name === pyodide.current?.PythonError.name
+      ) {
+        setPythonError({
+          lineNumber: getExceptionLineNumber(err.message),
+        });
       }
     }
-  }, [pyodideInitialized, pythonSource]);
+  }, [pythonSource, pythonError]);
 
   return (
     <>
@@ -76,7 +82,7 @@ const App: React.FC = () => {
           mode="python"
           error={pythonError}
         />
-        <DebuggerControls />
+        <DebuggerControls onExecute={executePython} />
       </div>
       <div className={styles.panel}></div>
     </>

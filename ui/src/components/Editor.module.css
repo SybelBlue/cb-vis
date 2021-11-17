@@ -1,6 +1,6 @@
 .lang-logo {
-  height: 30px;
+  height: 3rem;
   position: absolute;
-  top: 5px;
-  right: 5px;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
 }
