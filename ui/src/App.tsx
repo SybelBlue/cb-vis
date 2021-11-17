@@ -7,7 +7,7 @@ import DebuggerControls from './components/DebuggerControls';
 import Document from './components/Document';
 import { documentAtom, programAtom } from './atoms/editor-atoms';
 import { getExceptionLineNumber } from './helpers/traceback';
-import type { Pyodide } from './types/pyodide';
+import type { Pyodide, TraceData } from './types/pyodide';
 import type { EditorError } from './types/editor';
 import styles from './App.module.css';
 import debuggerMachine from './helpers/debugger-fsm';
@@ -24,12 +24,21 @@ const App: React.FC = () => {
   const [pythonSource, setPythonSource] = useAtom(programAtom);
 
   const pyodide = React.useRef<Pyodide | null>(null);
+  const debuggerProgram = React.useRef<string | null>(null);
   const [pyodideInitialized, setPyodideInitialized] = React.useState(false);
   const [pythonError, setPythonError] = React.useState<EditorError>();
 
   const debuggerService = interpret(debuggerMachine)
-    // .onTransition((state) => console.log(state));
-
+    .onTransition((state) => console.log('state transition', state))
+    .start();
+  
+  React.useEffect(() => {
+    window.document.reportRecord = (json: string) => {
+      const traceData = JSON.parse(json) as TraceData[];
+      debuggerService.send({ type: 'LOAD', payload: traceData });
+    };
+  }, []);
+  
   React.useEffect(() => {
     if (!pyodideInitialized) {
       const initPyodide = async (): Promise<void> => {
@@ -40,32 +49,42 @@ const App: React.FC = () => {
           indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.18.1/full/',
         });
 
+        const body = await fetch('debugger.py');
+        debuggerProgram.current = await body.text();
+
         setPyodideInitialized(true);
       };
 
       initPyodide();
     }
   }, [pyodideInitialized]);
-
+  
+  React.useEffect(() => {
+    window.document.getUserCode = (): string => pythonSource;
+  }, [pythonSource]);
+  
   const executePython = React.useCallback(() => {
     try {
-      pyodide.current?.runPython(pythonSource);
+      if (debuggerProgram.current) {
+        pyodide.current?.runPython(debuggerProgram.current);
+      }
 
       // If we have an existing error flagged from a previous execution, remove it.
-      if (pythonError) {
-        setPythonError(undefined);
-      }
+      // if (pythonError) {
+      //   setPythonError(undefined);
+      // }
     } catch (err) {
-      if (
-        err instanceof Error &&
-        err.name === pyodide.current?.PythonError.name
-      ) {
-        setPythonError({
-          lineNumber: getExceptionLineNumber(err.message),
-        });
-      }
+      // FATAL CRASH?
+      // if (
+      //   err instanceof Error &&
+      //   err.name === pyodide.current?.PythonError.name
+      // ) {
+      //   setPythonError({
+      //     lineNumber: getExceptionLineNumber(err.message),
+      //   });
+      // }
     }
-  }, [pythonSource, pythonError]);
+  }, [pythonError]);
 
   return (
     <>

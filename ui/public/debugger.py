@@ -92,34 +92,30 @@ def get_user_code():
             return f.read()
 
 
-def __main__():
-    code = get_user_code()
-    record = list()
-    gs, reg = dict(), globals()
-    std = StringIO(), StringIO()
+# fires on debugger execution
+code = get_user_code()
+record = list()
+gs, reg = dict(), globals()
+std = StringIO(), StringIO()
 
-    def log(x: TraceData):
-        x_dict = x.to_dict()
-        x_dict['stdout'], x_dict['stderr'] = (x.getvalue() for x in std)
-        try:
-            import js
-            x_dict['iframestate'] = js.document.getIframeState()
-        except Exception:
-            pass
-        record.append(x_dict)
-
-    db = Debugger(log)
-    with_std(db.run, *std)(code, gs)
-
+def log(x: TraceData):
+    x_dict = x.to_dict()
+    x_dict['stdout'], x_dict['stderr'] = (x.getvalue() for x in std)
     try:
         import js
-        js.document.reportRecord(safe_serialize(record))
+        x_dict['iframestate'] = js.document.getIframeState()
     except Exception:
-        ls = {k: v for k, v in gs.items() if k not in reg}
-        for r in record:
-            print(safe_serialize(r))
-        print('final user globals:', ls)
+        pass
+    record.append(x_dict)
 
+db = Debugger(log)
+with_std(db.run, *std)(code, gs)
 
-if __name__ == '__main__':
-    __main__()
+try:
+    import js
+    js.document.reportRecord(safe_serialize(record))
+except Exception:
+    ls = {k: v for k, v in gs.items() if k not in reg}
+    for r in record:
+        print(safe_serialize(r))
+    print('final user globals:', ls)

@@ -1,11 +1,6 @@
 import { createMachine, assign, AssignAction } from 'xstate';
 
-interface TraceData {
-  frame: { lineno: number; locals: Record<string, unknown> };
-  type: string;
-  arg?: string;
-  arg_name?: string;
-}
+import { TraceData } from '../types/pyodide';
 
 interface Context {
   index: number;
@@ -35,10 +30,10 @@ const debuggerMachine = createMachine<Context, Event>(
         on: {
           LOAD: {
             target: 'idle',
-            actions: (_ctxt, e) => ({
+            actions: assign((_ctxt, e) => ({
               index: 0,
               data: e.payload,
-            }),
+            })),
           },
         },
       },
@@ -55,7 +50,6 @@ const debuggerMachine = createMachine<Context, Event>(
           },
           STOP: {
             target: 'stopped',
-            actions: ['debug'],
           },
         },
       },
