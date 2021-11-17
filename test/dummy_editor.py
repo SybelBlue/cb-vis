@@ -5,14 +5,14 @@ def pows_of_2(n):
         print(2 ** \
             i)
 
-def onclick(e):
-    print('hello', e)
+def onclick(e, opt=False):
+    print('hello', e, ':' + (')' if opt else '('))
     global x
     x += 1
     pows_of_2(3)
 
 print(x)
-onclick('world')
+onclick(x, opt=True)
 print(x, \
     'te' + \
         'st')
