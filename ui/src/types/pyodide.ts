@@ -10,7 +10,9 @@ export interface Pyodide {
 export interface PyProxy {
   length: number;
   type: string;
+  has: (name: string) => boolean;
   get: (name: string) => unknown | PyProxy;
+  set: (name: string, value: unknown) => void;
   [Symbol.iterator]: () => { next: () => { value: string } };
 }
 
