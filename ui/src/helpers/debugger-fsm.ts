@@ -14,12 +14,15 @@ type Event =
   | { type: 'LOAD'; payload: TraceData[] };
 
 const clampIndex = (n: number, array: unknown[]): number =>
-  Math.max(0, Math.min(array.length - 1, n));
+  Math.max(0, Math.min(array.length, n));
 
 const delta = (d: number): AssignAction<Context, Event> =>
   assign((context: Context) => ({
     index: clampIndex(context.index + d, context.data),
   }));
+
+const currentTrace = (ctxt: Context): TraceData | undefined =>
+  ctxt.data[ctxt.index];
 
 const debuggerMachine = createMachine<Context, Event>(
   {
@@ -38,9 +41,10 @@ const debuggerMachine = createMachine<Context, Event>(
         },
       },
       idle: {
+        always: [{ target: 'stopped', cond: 'finishedPlayback' }],
         on: {
           NEXT: {
-            actions: ['next'],
+            actions: ['next', 'logCurrent'],
           },
           PREV: {
             actions: ['prev'],
@@ -56,8 +60,15 @@ const debuggerMachine = createMachine<Context, Event>(
     actions: {
       next: delta(1),
       prev: delta(-1),
+      logCurrent: (ctxt) => {
+        // eslint-disable-next-line no-console
+        console.log(currentTrace(ctxt));
+      },
+    },
+    guards: {
+      finishedPlayback: (ctxt) => ctxt.data.length == ctxt.index,
     },
   }
 );
 
-export default debuggerMachine;
+export { debuggerMachine, currentTrace };

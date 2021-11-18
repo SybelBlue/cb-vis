@@ -29,9 +29,9 @@ const Editor: React.FC<Props> = ({ source, setSource, mode, error, debuggerLine 
       ? []
       : [
           {
-            startRow: debuggerLine,
+            startRow: debuggerLine - 1,
             startCol: 1,
-            endRow: debuggerLine,
+            endRow: debuggerLine - 1,
             endCol: 2,
             className: 'debugger-cursor',
             type: 'fullLine',
@@ -45,6 +45,7 @@ const Editor: React.FC<Props> = ({ source, setSource, mode, error, debuggerLine 
         theme="dracula"
         onChange={setSource}
         value={source}
+        readOnly={debuggerLine != null}
         highlightActiveLine
         height="100%"
         width="100%"

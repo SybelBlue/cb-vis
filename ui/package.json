@@ -10,6 +10,7 @@
     "format": "prettier --write src"
   },
   "dependencies": {
+    "@xstate/react": "^1.6.2",
     "jotai": "^1.4.2",
     "pyodide": "^0.18.2",
     "react": "^17.0.0",
