@@ -82,35 +82,34 @@ class Debugger(Bdb):
     user_exception = partialmethod(user, ExceptionTraceData)
 
 
-def get_user_code():
-    try:
-        import js
-        return js.document.getUserCode()
-    except Exception:
-        from os.path import join, split
-        with open(join(split(__file__)[0], 'test/dummy_editor.py'), 'r') as f:
-            return f.read()
+def trace_exec(code, report_record, gs=None):
+    record = list()
+    gs, reg = gs or dict(), globals()
+    std = StringIO(), StringIO()
+
+    def log(x: TraceData):
+        x_dict = x.to_dict()
+        x_dict['stdout'], x_dict['stderr'] = (x.getvalue() for x in std)
+        record.append(x_dict)
+
+    db = Debugger(log)
+    with_std(db.run, *std)(code, gs)
+
+    report_record(safe_serialize(record))
+
+    locals = {k: v for k, v in gs.items() if k not in reg}
+    return locals
 
 
-# fires on debugger execution
-code = get_user_code()
-record = list()
-gs, reg = dict(), globals()
-std = StringIO(), StringIO()
+def __main__():
+    def print_record(record):
+        for r in record:
+            print(safe_serialize(r))
 
-def log(x: TraceData):
-    x_dict = x.to_dict()
-    x_dict['stdout'], x_dict['stderr'] = (x.getvalue() for x in std)
-    record.append(x_dict)
+    from os.path import join, split
+    with open(join(split(__file__)[0], 'test/dummy_editor.py'), 'r') as f:
+        return trace_exec(f.read(), print_record)
 
-db = Debugger(log)
-with_std(db.run, *std)(code, gs)
 
-try:
-    import js
-    js.document.reportRecord(safe_serialize(record))
-except Exception:
-    ls = {k: v for k, v in gs.items() if k not in reg}
-    for r in record:
-        print(safe_serialize(r))
-    print('final user globals:', ls)
+if __name__ == '__main__':
+    __main__()
