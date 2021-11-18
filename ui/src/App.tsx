@@ -21,21 +21,6 @@ const App: React.FC = () => {
   const [pyodideInitialized, setPyodideInitialized] = React.useState(false);
   const [pythonError, setPythonError] = React.useState<EditorError>();
 
-  const debuggerService = interpret(debuggerMachine)
-    .onTransition((state) => console.log('state transition', state))
-    .start();
-
-  const reportRecord = (json: string) => {
-    const traceData = JSON.parse(json) as TraceData[];
-    debuggerService.send({ type: 'LOAD', payload: traceData });
-  };
-
-  const getNames = (ctxt: PyProxy) => {
-    const localNames: string[] = [];
-    for (const x of ctxt) localNames.push(x);
-    return localNames;
-  };
-
   React.useEffect(() => {
     if (!pyodideInitialized) {
       const initPyodide = async (): Promise<void> => {
@@ -57,6 +42,21 @@ const App: React.FC = () => {
       initPyodide();
     }
   }, [pyodideInitialized]);
+
+  const debuggerService = interpret(debuggerMachine)
+    .onTransition((state) => console.log('state transition', state))
+    .start();
+
+  const reportRecord = (json: string) => {
+    const traceData = JSON.parse(json) as TraceData[];
+    debuggerService.send({ type: 'LOAD', payload: traceData });
+  };
+
+  const getNames = (ctxt: PyProxy) => {
+    const localNames: string[] = [];
+    for (const x of ctxt) localNames.push(x);
+    return localNames;
+  };
 
   const executePython = React.useCallback(() => {
     try {
