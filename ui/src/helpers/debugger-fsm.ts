@@ -45,9 +45,6 @@ const debuggerMachine = createMachine<Context, Event>(
           PREV: {
             actions: ['prev'],
           },
-          LOAD: {
-            actions: ['activate'],
-          },
           STOP: {
             target: 'stopped',
           },
