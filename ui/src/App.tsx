@@ -10,7 +10,7 @@ import { documentAtom, programAtom } from './atoms/editor-atoms';
 import type { Pyodide, PyProxy, TraceData, TraceExec } from './types/pyodide';
 import type { EditorError } from './types/editor';
 import styles from './App.module.css';
-import {debuggerMachine, currentTrace } from './helpers/debugger-fsm';
+import { debuggerMachine, currentTrace } from './helpers/debugger-fsm';
 
 const App: React.FC = () => {
   const [htmlSource, setHtmlSource] = useAtom(documentAtom);
@@ -55,11 +55,15 @@ const App: React.FC = () => {
     if (current.value == 'stopped') {
       const reportRecord = (json: string): void => {
         const traceData = JSON.parse(json) as TraceData[];
-        send({ type: 'LOAD', payload: traceData });
+        const next = send({ type: 'LOAD', payload: traceData });
+        // eslint-disable-next-line no-console
+        console.log('loaded', next);
       };
 
       try {
-        const traceExec = pyodide.current?.globals.get('trace_exec') as TraceExec;
+        const traceExec = pyodide.current?.globals.get(
+          'trace_exec'
+        ) as TraceExec;
         if (traceExec) {
           userGlobals.current = traceExec(
             pythonSource,
@@ -85,7 +89,9 @@ const App: React.FC = () => {
         // }
       }
     } else {
-      send('NEXT')
+      const next = send('NEXT');
+      // eslint-disable-next-line no-console
+      console.log('advanced', next);
     }
   }, [current, send, pythonSource, userGlobals]);
 
@@ -95,10 +101,20 @@ const App: React.FC = () => {
     console.log('stopped', next);
   }, [send]);
 
+  const debuggerLine =
+    current.value == 'stopped'
+      ? undefined
+      : currentTrace(current.context)?.frame.lineno;
+
   return (
     <>
       <div className={styles.panel}>
-        <Editor source={htmlSource} setSource={setHtmlSource} mode="html" />
+        <Editor
+          source={htmlSource}
+          setSource={setHtmlSource}
+          mode="html"
+          debuggerLine={debuggerLine}
+        />
       </div>
       <div className={styles.panel}>
         <Document srcDoc={htmlSource} />
@@ -109,13 +125,13 @@ const App: React.FC = () => {
           setSource={setPythonSource}
           mode="python"
           error={pythonError}
-          debuggerLine={
-            current.value == 'stopped' 
-              ? undefined
-              : currentTrace(current.context)?.frame.lineno
-          }
+          debuggerLine={debuggerLine}
         />
-        <DebuggerControls onExecute={executePython} onPlayToEnd={onPlayToEnd} executing={current.value == 'idle'} />
+        <DebuggerControls
+          onExecute={executePython}
+          onPlayToEnd={onPlayToEnd}
+          executing={current.value == 'idle'}
+        />
       </div>
       <div className={styles.panel}></div>
     </>

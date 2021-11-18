@@ -3,6 +3,7 @@ import AceEditor, { IMarker } from 'react-ace';
 import 'ace-builds/src-noconflict/mode-html';
 import 'ace-builds/src-noconflict/mode-python';
 import 'ace-builds/src-noconflict/theme-dracula';
+import 'ace-builds/src-noconflict/theme-pastel_on_dark';
 
 import HtmlLogo from '../assets/html-logo.svg';
 import PythonLogo from '../assets/python-logo.svg';
@@ -24,8 +25,10 @@ const Editor: React.FC<Props> = ({ source, setSource, mode, error, debuggerLine 
       ? { src: HtmlLogo, alt: 'HTML' }
       : { src: PythonLogo, alt: 'Python' };
 
+  const debuggingMode = debuggerLine != null;
+
   const markers: IMarker[] =
-    !debuggerLine || mode === 'html'
+    !debuggingMode || mode === 'html'
       ? []
       : [
           {
@@ -42,10 +45,10 @@ const Editor: React.FC<Props> = ({ source, setSource, mode, error, debuggerLine 
     <>
       <AceEditor
         mode={mode}
-        theme="dracula"
+        theme={ debuggingMode ? "pastel_on_dark" : "dracula" }
         onChange={setSource}
         value={source}
-        readOnly={debuggerLine != null}
+        readOnly={debuggingMode}
         highlightActiveLine
         height="100%"
         width="100%"

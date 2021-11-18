@@ -1,7 +1,7 @@
-from io import StringIO
 from typing import *
 
-from functools import partial, partialmethod
+from io import StringIO
+from functools import partialmethod
 from types import FrameType
 from dataclasses import fields, dataclass
 from bdb import Bdb
@@ -97,7 +97,6 @@ def trace_exec(code, report_record, gs=None):
 
     report_record(safe_serialize(record))
 
-    del gs['__builtins__']
     return gs
 
 
