@@ -84,7 +84,7 @@ class Debugger(Bdb):
 
 def trace_exec(code, report_record, gs=None):
     record = list()
-    gs, reg = gs or dict(), globals()
+    gs = gs or dict()
     std = StringIO(), StringIO()
 
     def log(x: TraceData):
@@ -97,8 +97,8 @@ def trace_exec(code, report_record, gs=None):
 
     report_record(safe_serialize(record))
 
-    locals = {k: v for k, v in gs.items() if k not in reg}
-    return locals
+    del gs['__builtins__']
+    return gs
 
 
 def __main__():

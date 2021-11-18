@@ -17,6 +17,7 @@ const App: React.FC = () => {
   const [pythonSource, setPythonSource] = useAtom(programAtom);
 
   const pyodide = React.useRef<Pyodide | null>(null);
+  const userGlobals = React.useRef<PyProxy | undefined>(undefined);
   const [pyodideInitialized, setPyodideInitialized] = React.useState(false);
   const [pythonError, setPythonError] = React.useState<EditorError>();
 
@@ -27,6 +28,12 @@ const App: React.FC = () => {
   const reportRecord = (json: string) => {
     const traceData = JSON.parse(json) as TraceData[];
     debuggerService.send({ type: 'LOAD', payload: traceData });
+  };
+
+  const getNames = (ctxt: PyProxy) => {
+    const localNames: string[] = [];
+    for (const x of ctxt) localNames.push(x);
+    return localNames;
   };
 
   React.useEffect(() => {
@@ -55,12 +62,12 @@ const App: React.FC = () => {
     try {
       const traceExec = pyodide.current?.globals.get('trace_exec') as TraceExec;
       if (traceExec) {
-        const locals = traceExec(pythonSource, reportRecord);
-        const localNames = [];
-        for (const x of locals) {
-          localNames.push(x);
-        }
-        console.log('local names', localNames);
+        userGlobals.current = traceExec(
+          pythonSource,
+          reportRecord,
+          userGlobals.current
+        );
+        console.log('local names', getNames(userGlobals.current));
       }
       // If we have an existing error flagged from a previous execution, remove it.
       // if (pythonError) {
@@ -77,7 +84,7 @@ const App: React.FC = () => {
       //   });
       // }
     }
-  }, [pythonError, pythonSource]);
+  }, [pythonError, pythonSource, userGlobals]);
 
   return (
     <>
