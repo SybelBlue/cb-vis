@@ -101,11 +101,6 @@ std = StringIO(), StringIO()
 def log(x: TraceData):
     x_dict = x.to_dict()
     x_dict['stdout'], x_dict['stderr'] = (x.getvalue() for x in std)
-    try:
-        import js
-        x_dict['iframestate'] = js.document.getIframeState()
-    except Exception:
-        pass
     record.append(x_dict)
 
 db = Debugger(log)

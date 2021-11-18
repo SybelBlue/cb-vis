@@ -14,7 +14,6 @@ import debuggerMachine from './helpers/debugger-fsm';
 
 // TODO: window.document needs to satsify:
 // interface PythonBridge {
-//   getIframeState: () => string,
 //   getUserCode: () => string,
 //   reportRecord: (list_of_json: string) => void,
 // }
