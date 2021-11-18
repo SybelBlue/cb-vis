@@ -1,4 +1,5 @@
-import AceEditor from 'react-ace';
+import AceEditor, { IMarker } from 'react-ace';
+
 import 'ace-builds/src-noconflict/mode-html';
 import 'ace-builds/src-noconflict/mode-python';
 import 'ace-builds/src-noconflict/theme-dracula';
@@ -13,14 +14,29 @@ interface Props {
   source: string;
   setSource: (value: string) => void;
   mode: 'python' | 'html';
+  debuggerLine?: number;
   error?: EditorError;
 }
 
-const Editor: React.FC<Props> = ({ source, setSource, mode, error }) => {
+const Editor: React.FC<Props> = ({ source, setSource, mode, error, debuggerLine }) => {
   const { src, alt } =
     mode === 'html'
       ? { src: HtmlLogo, alt: 'HTML' }
       : { src: PythonLogo, alt: 'Python' };
+
+  const markers: IMarker[] =
+    !debuggerLine || mode === 'html'
+      ? []
+      : [
+          {
+            startRow: debuggerLine,
+            startCol: 1,
+            endRow: debuggerLine,
+            endCol: 2,
+            className: 'debugger-cursor',
+            type: 'fullLine',
+          },
+        ];
 
   return (
     <>
@@ -33,6 +49,7 @@ const Editor: React.FC<Props> = ({ source, setSource, mode, error }) => {
         height="100%"
         width="100%"
         fontSize={14}
+        markers={markers}
         annotations={
           error && [
             {
