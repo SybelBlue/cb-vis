@@ -1,10 +1,12 @@
 from typing import *
 
+from io import StringIO
 from functools import partialmethod
 from types import FrameType
 from dataclasses import fields, dataclass
 from bdb import Bdb
 from json import dumps
+from contextlib import redirect_stdout, redirect_stderr
 
 
 def safe_serialize(obj, first_call=True):
@@ -59,6 +61,13 @@ class ExceptionTraceData(TraceData):
     exc_info: Any
 
 
+def with_std(src_fn: Callable, stdout: StringIO, stderr: StringIO):
+    def inner(*args, **kwargs):
+        with redirect_stderr(stderr), redirect_stdout(stdout):
+            return src_fn(*args, **kwargs)
+    return inner
+
+
 class Debugger(Bdb):
     def __init__(self, trace_fn: Callable[[TraceData], None], skip=None) -> None:
         super().__init__(skip=skip)
@@ -73,41 +82,32 @@ class Debugger(Bdb):
     user_exception = partialmethod(user, ExceptionTraceData)
 
 
-def get_user_code():
-    try:
-        import js
-        return js.document.getUserCode()
-    except:
-        from os.path import join, split
-        with open(join(split(__file__)[0], '../test/dummy_editor.py'), 'r') as f:
-            return f.read()
-
-
-def __main__():
-    code = get_user_code()
+def trace_exec(code, report_record, gs=None):
     record = list()
-    gs, reg = dict(), globals()
+    gs = gs or dict()
+    std = StringIO(), StringIO()
 
     def log(x: TraceData):
         x_dict = x.to_dict()
-        try:
-            import js
-            x_dict['iframestate'] = js.document.getIframeState()
-        except Exception:
-            pass
+        x_dict['stdout'], x_dict['stderr'] = (x.getvalue() for x in std)
         record.append(x_dict)
 
     db = Debugger(log)
-    db.run(code, gs)
+    with_std(db.run, *std)(code, gs)
 
-    try:
-        import js
-        js.document.reportRecord(safe_serialize(record))
-    except Exception:
-        ls = {k: v for k, v in gs.items() if k not in reg}
+    report_record(safe_serialize(record))
+
+    return gs
+
+
+def __main__():
+    def print_record(record):
         for r in record:
             print(safe_serialize(r))
-        print('final user globals:', ls)
+
+    from os.path import join, split
+    with open(join(split(__file__)[0], 'test/dummy_editor.py'), 'r') as f:
+        return trace_exec(f.read(), print_record)
 
 
 if __name__ == '__main__':

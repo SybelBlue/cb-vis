@@ -1,29 +1,25 @@
 import * as React from 'react';
 import { useAtom } from 'jotai';
+import { useMachine } from '@xstate/react';
 
 import Editor from './components/Editor';
 import DebuggerControls from './components/DebuggerControls';
 import Document from './components/Document';
 import { documentAtom, programAtom } from './atoms/editor-atoms';
-import { getExceptionLineNumber } from './helpers/traceback';
-import type { Pyodide } from './types/pyodide';
+// import { getExceptionLineNumber } from './helpers/traceback';
+import type { Pyodide, PyProxy, TraceData, TraceExec } from './types/pyodide';
 import type { EditorError } from './types/editor';
 import styles from './App.module.css';
-
-// TODO: window.document needs to satsify:
-// interface PythonBridge {
-//   getIframeState: () => string,
-//   getUserCode: () => string,
-//   reportRecord: (list_of_json: string) => void,
-// }
+import { debuggerMachine, currentTrace } from './helpers/debugger-fsm';
 
 const App: React.FC = () => {
   const [htmlSource, setHtmlSource] = useAtom(documentAtom);
   const [pythonSource, setPythonSource] = useAtom(programAtom);
 
   const pyodide = React.useRef<Pyodide | null>(null);
+  const userGlobals = React.useRef<PyProxy | undefined>(undefined);
   const [pyodideInitialized, setPyodideInitialized] = React.useState(false);
-  const [pythonError, setPythonError] = React.useState<EditorError>();
+  const [pythonError, _setPythonError] = React.useState<EditorError>();
 
   React.useEffect(() => {
     if (!pyodideInitialized) {
@@ -35,6 +31,11 @@ const App: React.FC = () => {
           indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.18.1/full/',
         });
 
+        const body = await fetch('debugger.py');
+        const debuggerProgram = await body.text();
+
+        await pyodide.current?.runPythonAsync(debuggerProgram);
+
         setPyodideInitialized(true);
       };
 
@@ -42,30 +43,78 @@ const App: React.FC = () => {
     }
   }, [pyodideInitialized]);
 
-  const executePython = React.useCallback(() => {
-    try {
-      pyodide.current?.runPython(pythonSource);
+  const [current, send] = useMachine(debuggerMachine);
 
-      // If we have an existing error flagged from a previous execution, remove it.
-      if (pythonError) {
-        setPythonError(undefined);
+  const getNames = (ctxt: PyProxy): string[] => {
+    const localNames: string[] = [];
+    for (const x of ctxt) localNames.push(x);
+    return localNames;
+  };
+
+  const executePython = React.useCallback(() => {
+    if (current.value == 'stopped') {
+      const reportRecord = (json: string): void => {
+        const traceData = JSON.parse(json) as TraceData[];
+        const next = send({ type: 'LOAD', payload: traceData });
+        // eslint-disable-next-line no-console
+        console.log('loaded', next);
+      };
+
+      try {
+        const traceExec = pyodide.current?.globals.get(
+          'trace_exec'
+        ) as TraceExec;
+        if (traceExec) {
+          userGlobals.current = traceExec(
+            pythonSource,
+            reportRecord,
+            userGlobals.current
+          );
+          // eslint-disable-next-line no-console
+          console.log('local names', getNames(userGlobals.current));
+        }
+        // If we have an existing error flagged from a previous execution, remove it.
+        // if (pythonError) {
+        //   setPythonError(undefined);
+        // }
+      } catch (err) {
+        // FATAL CRASH?
+        // if (
+        //   err instanceof Error &&
+        //   err.name === pyodide.current?.PythonError.name
+        // ) {
+        //   setPythonError({
+        //     lineNumber: getExceptionLineNumber(err.message),
+        //   });
+        // }
       }
-    } catch (err) {
-      if (
-        err instanceof Error &&
-        err.name === pyodide.current?.PythonError.name
-      ) {
-        setPythonError({
-          lineNumber: getExceptionLineNumber(err.message),
-        });
-      }
+    } else {
+      const next = send('NEXT');
+      // eslint-disable-next-line no-console
+      console.log('advanced', next);
     }
-  }, [pythonSource, pythonError]);
+  }, [current, send, pythonSource, userGlobals]);
+
+  const onPlayToEnd = React.useCallback(() => {
+    const next = send('STOP');
+    // eslint-disable-next-line no-console
+    console.log('stopped', next);
+  }, [send]);
+
+  const debuggerLine =
+    current.value == 'stopped'
+      ? undefined
+      : currentTrace(current.context)?.frame.lineno;
 
   return (
     <>
       <div className={styles.panel}>
-        <Editor source={htmlSource} setSource={setHtmlSource} mode="html" />
+        <Editor
+          source={htmlSource}
+          setSource={setHtmlSource}
+          mode="html"
+          debuggerLine={debuggerLine}
+        />
       </div>
       <div className={styles.panel}>
         <Document srcDoc={htmlSource} />
@@ -76,8 +125,13 @@ const App: React.FC = () => {
           setSource={setPythonSource}
           mode="python"
           error={pythonError}
+          debuggerLine={debuggerLine}
         />
-        <DebuggerControls onExecute={executePython} />
+        <DebuggerControls
+          onExecute={executePython}
+          onPlayToEnd={onPlayToEnd}
+          executing={current.value == 'idle'}
+        />
       </div>
       <div className={styles.panel}></div>
     </>
