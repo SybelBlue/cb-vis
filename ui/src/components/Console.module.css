@@ -1,0 +1,33 @@
+.console {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--editor-primary);
+  font-family: monospace;
+  font-size: 1.4rem;
+}
+
+.console__icon {
+  height: 3rem;
+  position: absolute;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+}
+
+.console__stmt {
+  display: flex;
+  align-items: center;
+  color: var(--text-primary);
+  padding: var(--spacing-sm) calc(var(--spacing-md) * 2) var(--spacing-sm) 0;
+  margin: 0;
+  border-bottom: 1px solid var(--editor-secondary);
+}
+
+.console__stmt--stderr {
+  color: var(--text-error);
+}
+
+.console__stmt-icon {
+  transform: scale(0.75);
+  flex-shrink: 0;
+}

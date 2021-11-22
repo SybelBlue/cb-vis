@@ -5,12 +5,17 @@ import { useMachine } from '@xstate/react';
 import Editor from './components/Editor';
 import DebuggerControls from './components/DebuggerControls';
 import Document from './components/Document';
+import Console from './components/Console';
 import { documentAtom, programAtom } from './atoms/editor-atoms';
-// import { getExceptionLineNumber } from './helpers/traceback';
+import { getExceptionLineNumber } from './helpers/traceback';
 import type { Pyodide, PyProxy, TraceData, TraceExec } from './types/pyodide';
 import type { EditorError } from './types/editor';
 import styles from './App.module.css';
-import { debuggerMachine, currentTrace } from './helpers/debugger-fsm';
+import {
+  debuggerMachine,
+  currentTrace,
+  currentStatements,
+} from './helpers/debugger-fsm';
 
 const App: React.FC = () => {
   const [htmlSource, setHtmlSource] = useAtom(documentAtom);
@@ -19,7 +24,7 @@ const App: React.FC = () => {
   const pyodide = React.useRef<Pyodide | null>(null);
   const userGlobals = React.useRef<PyProxy | undefined>(undefined);
   const [pyodideInitialized, setPyodideInitialized] = React.useState(false);
-  const [pythonError, _setPythonError] = React.useState<EditorError>();
+  const [pythonError, setPythonError] = React.useState<EditorError>();
 
   React.useEffect(() => {
     if (!pyodideInitialized) {
@@ -73,10 +78,6 @@ const App: React.FC = () => {
           // eslint-disable-next-line no-console
           console.log('local names', getNames(userGlobals.current));
         }
-        // If we have an existing error flagged from a previous execution, remove it.
-        // if (pythonError) {
-        //   setPythonError(undefined);
-        // }
       } catch (err) {
         // FATAL CRASH?
         // if (
@@ -106,6 +107,29 @@ const App: React.FC = () => {
       ? undefined
       : currentTrace(current.context)?.frame.lineno;
 
+  const checkPythonSource = React.useCallback(
+    (source) => {
+      try {
+        pyodide.current?.runPython(source);
+
+        // If we have an existing error flagged from a previous execution, remove it.
+        if (pythonError) {
+          setPythonError(undefined);
+        }
+      } catch (err) {
+        if (
+          err instanceof Error &&
+          err.name === pyodide.current?.PythonError.name
+        ) {
+          setPythonError({
+            lineNumber: getExceptionLineNumber(err.message),
+          });
+        }
+      }
+    },
+    [pythonError]
+  );
+
   return (
     <>
       <div className={styles.panel}>
@@ -122,7 +146,10 @@ const App: React.FC = () => {
       <div className={styles.panel}>
         <Editor
           source={pythonSource}
-          setSource={setPythonSource}
+          setSource={(source: string): void => {
+            checkPythonSource(source);
+            setPythonSource(source);
+          }}
           mode="python"
           error={pythonError}
           debuggerLine={debuggerLine}
@@ -131,9 +158,12 @@ const App: React.FC = () => {
           onExecute={executePython}
           onPlayToEnd={onPlayToEnd}
           executing={current.value == 'idle'}
+          error={pythonError}
         />
       </div>
-      <div className={styles.panel}></div>
+      <div className={styles.panel}>
+        <Console statements={currentStatements(current.context)} />
+      </div>
     </>
   );
 };

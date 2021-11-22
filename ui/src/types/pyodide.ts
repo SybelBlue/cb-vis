@@ -27,4 +27,6 @@ export interface TraceData {
   type: string;
   arg?: string;
   arg_name?: string;
+  stdout: string;
+  stderr: string;
 }

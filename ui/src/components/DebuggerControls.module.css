@@ -4,6 +4,7 @@
   border-top: 1px solid var(--text-primary);
   display: flex;
   align-items: center;
+  font-size: 1.2rem;
 }
 
 .debugger-controls__button {
@@ -20,7 +21,24 @@
   background: var(--editor-secondary);
 }
 
+.debugger-controls__button:disabled {
+  cursor: not-allowed;
+  color: var(--text-disabled);
+}
+
+.debugger-controls__button:hover:disabled {
+  background: var(--editor-primary);
+}
+
 .debugger-controls__icon {
   padding-right: var(--spacing-sm);
   cursor: pointer;
+}
+
+.debugger-controls__error {
+  margin-left: auto;
+  margin-top: 0;
+  margin-bottom: 0;
+  color: var(--text-error);
+  padding: 0 var(--spacing-md);
 }

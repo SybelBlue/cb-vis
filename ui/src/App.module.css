@@ -4,3 +4,11 @@
   position: relative;
   border: 1px solid var(--text-primary);
 }
+
+.panel:nth-child(even) {
+  border-left: none;
+}
+
+.panel:nth-last-child(-n + 2) {
+  border-top: none;
+}

@@ -57,7 +57,7 @@ const Editor: React.FC<Props> = ({ source, setSource, mode, error, debuggerLine 
         annotations={
           error && [
             {
-              row: error.lineNumber - 1,
+              row: error.lineNumber,
               column: 0,
               text: 'Syntax error',
               type: 'error',
