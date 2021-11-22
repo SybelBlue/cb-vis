@@ -79,9 +79,19 @@ const currentStatements = (ctxt: Context): Statement[] => {
     .slice(0, index + 1)
     .reduce<Statement[]>((acc, trace) => {
       if (trace.stdout) {
-        return [...acc, { type: 'stdout', message: trace.stdout }];
+        const lines = trace.stdout
+          .trim()
+          .split('\n')
+          .map((line) => ({ type: <const>'stdout', message: line }));
+
+        return [...acc, ...lines];
       } else if (trace.stderr) {
-        return [...acc, { type: 'stderr', message: trace.stderr }];
+        const lines = trace.stderr
+          .trim()
+          .split('\n')
+          .map((line) => ({ type: <const>'stderr', message: line }));
+
+        return [...acc, ...lines];
       } else {
         return acc;
       }

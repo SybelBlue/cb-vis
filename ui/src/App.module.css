@@ -5,6 +5,10 @@
   border: 1px solid var(--text-primary);
 }
 
+.panel:last-child {
+  overflow: auto;
+}
+
 .panel:nth-child(even) {
   border-left: none;
 }
