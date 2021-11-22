@@ -11,11 +11,7 @@ import { getExceptionLineNumber } from './helpers/traceback';
 import type { Pyodide, PyProxy, TraceData, TraceExec } from './types/pyodide';
 import type { EditorError } from './types/editor';
 import styles from './App.module.css';
-import {
-  debuggerMachine,
-  currentTrace,
-  currentStatements,
-} from './helpers/debugger-fsm';
+import { debuggerMachine, currentTrace } from './helpers/debugger-fsm';
 
 const App: React.FC = () => {
   const [htmlSource, setHtmlSource] = useAtom(documentAtom);
@@ -162,7 +158,9 @@ const App: React.FC = () => {
         />
       </div>
       <div className={styles.panel}>
-        <Console statements={currentStatements(current.context)} />
+        <Console
+          stdout={current.context.data?.[current.context.index]?.stdout || ''}
+        />
       </div>
     </>
   );

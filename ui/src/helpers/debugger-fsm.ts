@@ -1,7 +1,6 @@
 import { createMachine, assign, AssignAction } from 'xstate';
 
 import type { TraceData } from '../types/pyodide';
-import type { Statement } from '../types/console';
 
 interface Context {
   index: number;
@@ -72,32 +71,4 @@ const debuggerMachine = createMachine<Context, Event>(
   }
 );
 
-const currentStatements = (ctxt: Context): Statement[] => {
-  const { index, data } = ctxt;
-
-  const statements = data
-    .slice(0, index + 1)
-    .reduce<Statement[]>((acc, trace) => {
-      if (trace.stdout) {
-        const lines = trace.stdout
-          .trim()
-          .split('\n')
-          .map((line) => ({ type: <const>'stdout', message: line }));
-
-        return [...acc, ...lines];
-      } else if (trace.stderr) {
-        const lines = trace.stderr
-          .trim()
-          .split('\n')
-          .map((line) => ({ type: <const>'stderr', message: line }));
-
-        return [...acc, ...lines];
-      } else {
-        return acc;
-      }
-    }, []);
-
-  return statements;
-};
-
-export { debuggerMachine, currentTrace, currentStatements };
+export { debuggerMachine, currentTrace };
