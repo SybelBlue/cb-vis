@@ -22,9 +22,14 @@ export type TraceExec = (
   globals?: PyProxy
 ) => PyProxy;
 
+export type TraceFn = (
+  code: string,
+  ignoreFirst?: boolean
+) => PyProxy | undefined;
+
 export interface TraceData {
   frame: { lineno: number; locals: Record<string, unknown> };
-  type: string;
+  type: 'call' | 'line' | 'return' | 'exception';
   arg?: string;
   arg_name?: string;
 }

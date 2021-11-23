@@ -7,7 +7,7 @@ import DebuggerControls from './components/DebuggerControls';
 import Document from './components/Document';
 import { documentAtom, iframeAtom, programAtom } from './atoms/editor-atoms';
 // import { getExceptionLineNumber } from './helpers/traceback';
-import type { Pyodide, PyProxy, TraceData, TraceExec } from './types/pyodide';
+import type { Pyodide, PyProxy, TraceData, TraceExec, TraceFn } from './types/pyodide';
 import type { EditorError } from './types/editor';
 import styles from './App.module.css';
 import { debuggerMachine, currentTrace } from './helpers/debugger-fsm';
@@ -46,10 +46,16 @@ const App: React.FC = () => {
 
   const [current, send] = useMachine(debuggerMachine);
 
-  const trace = React.useCallback(
-    (pySrc: string) => {
+  const trace: TraceFn = React.useCallback(
+    (pySrc: string, ignoreFirst: boolean = false) => {
       const reportRecord = (json: string): void => {
-        const traceData = JSON.parse(json) as TraceData[];
+        let traceData = (JSON.parse(json) as TraceData[]);
+        
+        if (ignoreFirst) {
+          const firstFrame = traceData.shift()?.frame;
+          traceData = traceData.filter((t: TraceData) => t.frame != firstFrame);
+        }
+
         send({ type: 'LOAD', payload: traceData });
       };
       const traceExec = pyodide.current?.globals.get('trace_exec') as TraceExec;
@@ -63,13 +69,14 @@ const App: React.FC = () => {
   );
 
   const executePython = React.useCallback(() => {
+    if (!pyodideInitialized) return;
     if (current.value == 'stopped') {
       trace(pythonSource);
       setIFrameSource(htmlSource);
     } else {
       send('NEXT');
     }
-  }, [current, send, setIFrameSource, pythonSource, htmlSource]);
+  }, [current, send, setIFrameSource, pythonSource, htmlSource, pyodideInitialized]);
 
   const onPlayToEnd = React.useCallback(() => send('STOP'), [send]);
 
@@ -99,11 +106,14 @@ const App: React.FC = () => {
           error={pythonError}
           debuggerLine={debuggerLine}
         />
-        <DebuggerControls
-          onExecute={executePython}
-          onPlayToEnd={onPlayToEnd}
-          executing={current.value == 'idle'}
-        />
+        {pyodideInitialized 
+          ? <DebuggerControls
+            onExecute={executePython}
+            onPlayToEnd={onPlayToEnd}
+            executing={current.value == 'idle'}
+          />
+          : null
+        }
       </div>
       <div className={styles.panel}></div>
     </>
