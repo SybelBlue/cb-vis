@@ -9,11 +9,17 @@ interface Props {
 
 const Document: React.FC<Props> = ({ srcDoc, blurred }) => {
   return (
-    <iframe
-      className={cs(styles['document'], blurred && styles['document--blurred'])}
-      title="document"
-      srcDoc={srcDoc}
-    />
+    <>
+      <iframe
+        className={cs(
+          styles['document'],
+          blurred && styles['document--blurred']
+        )}
+        title="document"
+        srcDoc={srcDoc}
+      />
+      {blurred ? <div className={styles['document__overlay']} /> : null}
+    </>
   );
 };
 
