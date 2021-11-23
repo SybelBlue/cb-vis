@@ -44,7 +44,7 @@ const debuggerMachine = createMachine<Context, Event>(
         always: [{ target: 'stopped', cond: 'finishedPlayback' }],
         on: {
           NEXT: {
-            actions: ['next', 'logCurrent'],
+            actions: ['next'],
           },
           PREV: {
             actions: ['prev'],

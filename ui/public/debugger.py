@@ -93,7 +93,8 @@ def trace_exec(code, report_record, gs=None):
         record.append(x_dict)
 
     db = Debugger(log)
-    with_std(db.run, *std)(code, gs)
+    run_with_std = with_std(db.run, *std)
+    run_with_std(code, gs)
 
     report_record(safe_serialize(record))
 
