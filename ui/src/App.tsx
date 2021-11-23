@@ -6,7 +6,6 @@ import Editor from './components/Editor';
 import DebuggerControls from './components/DebuggerControls';
 import Document from './components/Document';
 import { documentAtom, iframeAtom, programAtom } from './atoms/editor-atoms';
-// import { getExceptionLineNumber } from './helpers/traceback';
 import type { Pyodide, PyProxy, TraceData, TraceExec, TraceFn } from './types/pyodide';
 import Console from './components/Console';
 import { getExceptionLineNumber } from './helpers/traceback';
@@ -62,7 +61,6 @@ const App: React.FC = () => {
       };
       const traceExec = pyodide.current?.globals.get('trace_exec') as TraceExec;
       if (!traceExec) return;
-      console.log('src', pySrc);
 
       const out = traceExec(pySrc, reportRecord, userGlobals.current);
       return (userGlobals.current = out);
