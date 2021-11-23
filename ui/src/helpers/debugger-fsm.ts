@@ -1,6 +1,6 @@
 import { createMachine, assign, AssignAction } from 'xstate';
 
-import { TraceData } from '../types/pyodide';
+import type { TraceData } from '../types/pyodide';
 
 interface Context {
   index: number;

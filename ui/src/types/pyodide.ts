@@ -32,4 +32,6 @@ export interface TraceData {
   type: 'call' | 'line' | 'return' | 'exception';
   arg?: string;
   arg_name?: string;
+  stdout: string;
+  stderr: string;
 }

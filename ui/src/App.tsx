@@ -8,6 +8,8 @@ import Document from './components/Document';
 import { documentAtom, iframeAtom, programAtom } from './atoms/editor-atoms';
 // import { getExceptionLineNumber } from './helpers/traceback';
 import type { Pyodide, PyProxy, TraceData, TraceExec, TraceFn } from './types/pyodide';
+import Console from './components/Console';
+import { getExceptionLineNumber } from './helpers/traceback';
 import type { EditorError } from './types/editor';
 import styles from './App.module.css';
 import { debuggerMachine, currentTrace } from './helpers/debugger-fsm';
@@ -20,7 +22,7 @@ const App: React.FC = () => {
   const pyodide = React.useRef<Pyodide | null>(null);
   const userGlobals = React.useRef<PyProxy | undefined>(undefined);
   const [pyodideInitialized, setPyodideInitialized] = React.useState(false);
-  const [pythonError, _setPythonError] = React.useState<EditorError>();
+  const [pythonError, setPythonError] = React.useState<EditorError>();
 
   React.useEffect(() => {
     if (!pyodideInitialized) {
@@ -80,10 +82,35 @@ const App: React.FC = () => {
 
   const onPlayToEnd = React.useCallback(() => send('STOP'), [send]);
 
+  const currentTraceData = currentTrace(current.context);
+
   const debuggerLine =
-    current.value == 'stopped'
-      ? undefined
-      : currentTrace(current.context)?.frame.lineno;
+    current.value == 'stopped' ? undefined : currentTraceData?.frame.lineno;
+  const stdout = currentTraceData?.stdout ?? '';
+  const stderr = currentTraceData?.stderr ?? '';
+
+  const checkPythonSource = React.useCallback(
+    (source) => {
+      try {
+        pyodide.current?.runPython(source);
+
+        // If we have an existing error flagged from a previous execution, remove it.
+        if (pythonError) {
+          setPythonError(undefined);
+        }
+      } catch (err) {
+        if (
+          err instanceof Error &&
+          err.name === pyodide.current?.PythonError.name
+        ) {
+          setPythonError({
+            lineNumber: getExceptionLineNumber(err.message),
+          });
+        }
+      }
+    },
+    [pythonError]
+  );
 
   return (
     <>
@@ -101,7 +128,10 @@ const App: React.FC = () => {
       <div className={styles.panel}>
         <Editor
           source={pythonSource}
-          setSource={setPythonSource}
+          setSource={(source: string): void => {
+            checkPythonSource(source);
+            setPythonSource(source);
+          }}
           mode="python"
           error={pythonError}
           debuggerLine={debuggerLine}
@@ -111,11 +141,14 @@ const App: React.FC = () => {
             onExecute={executePython}
             onPlayToEnd={onPlayToEnd}
             executing={current.value == 'idle'}
+            error={pythonError}
           />
           : null
         }
       </div>
-      <div className={styles.panel}></div>
+      <div className={styles.panel}>
+        <Console stdout={stdout} stderr={stderr} />
+      </div>
     </>
   );
 };
