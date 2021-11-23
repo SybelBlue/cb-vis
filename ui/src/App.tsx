@@ -98,10 +98,12 @@ const App: React.FC = () => {
     console.log('stopped', next);
   }, [send]);
 
+  const trace = currentTrace(current.context);
+
   const debuggerLine =
-    current.value == 'stopped'
-      ? undefined
-      : currentTrace(current.context)?.frame.lineno;
+    current.value == 'stopped' ? undefined : trace?.frame.lineno;
+  const stdout = trace?.stdout ?? '';
+  const stderr = trace?.stderr ?? '';
 
   const checkPythonSource = React.useCallback(
     (source) => {
@@ -158,9 +160,7 @@ const App: React.FC = () => {
         />
       </div>
       <div className={styles.panel}>
-        <Console
-          stdout={current.context.data?.[current.context.index]?.stdout || ''}
-        />
+        <Console stdout={stdout} stderr={stderr} />
       </div>
     </>
   );
