@@ -2,6 +2,8 @@
   --editor-primary: #282a35;
   --editor-secondary: #444759;
   --text-primary: #ffffff;
+  --text-error: #ff5555;
+  --text-disabled: #9f9f9f;
   --spacing-sm: 0.5rem;
   --spacing-md: 1rem;
 }
