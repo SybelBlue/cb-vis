@@ -139,7 +139,7 @@ const App: React.FC = () => {
         />
       </div>
       <div className={styles.panel}>
-        <Document srcDoc={htmlSource} />
+        <Document srcDoc={htmlSource} blurred={current.value === 'idle'} />
       </div>
       <div className={styles.panel}>
         <Editor
