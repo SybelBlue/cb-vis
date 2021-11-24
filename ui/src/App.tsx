@@ -1,4 +1,5 @@
 import * as React from 'react';
+import $ from 'jquery';
 import { useAtom } from 'jotai';
 import { useMachine } from '@xstate/react';
 
@@ -6,7 +7,14 @@ import Editor from './components/Editor';
 import DebuggerControls from './components/DebuggerControls';
 import Document from './components/Document';
 import { documentAtom, iframeAtom, programAtom } from './atoms/editor-atoms';
-import type { Pyodide, PyProxy, TraceData, TraceExec, TraceFn } from './types/pyodide';
+import type {
+  Pyodide,
+  PyProxy,
+  SyntaxChecker,
+  TraceData,
+  TraceExec,
+  TraceFn,
+} from './types/pyodide';
 import Console from './components/Console';
 import { getExceptionLineNumber } from './helpers/traceback';
 import type { EditorError } from './types/editor';
@@ -20,6 +28,7 @@ const App: React.FC = () => {
 
   const pyodide = React.useRef<Pyodide | null>(null);
   const userGlobals = React.useRef<PyProxy | undefined>(undefined);
+  const userCallbacks = React.useRef<{ selector: string; event: string; cb: string }[]>([]);
   const [pyodideInitialized, setPyodideInitialized] = React.useState(false);
   const [pythonError, setPythonError] = React.useState<EditorError>();
 
@@ -33,8 +42,7 @@ const App: React.FC = () => {
           indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.18.1/full/',
         });
 
-        const body = await fetch('debugger.py');
-        const debuggerProgram = await body.text();
+        const debuggerProgram = await (await fetch('debugger.py')).text();
 
         await pyodide.current?.runPythonAsync(debuggerProgram);
 
@@ -50,8 +58,8 @@ const App: React.FC = () => {
   const trace: TraceFn = React.useCallback(
     (pySrc: string, ignoreFirst: boolean = false) => {
       const reportRecord = (json: string): void => {
-        let traceData = (JSON.parse(json) as TraceData[]);
-        
+        let traceData = JSON.parse(json) as TraceData[];
+
         if (ignoreFirst) {
           const firstFrame = traceData.shift()?.frame;
           traceData = traceData.filter((t: TraceData) => t.frame != firstFrame);
@@ -59,11 +67,34 @@ const App: React.FC = () => {
 
         send({ type: 'LOAD', payload: traceData });
       };
+      const setCallback = (selector: string, event: string, cb: string) => {
+        const cbText = cb.__name__ ? cb.__name__ + '()' : cb;
+        console.log('set callback', selector, event, cbText);
+        userCallbacks.current.push({ selector, event, cb: cbText });
+        // $('#frame')
+        //   .contents()
+        //   .find(selector)
+        //   .toArray()
+        //   .forEach((res) => {
+        //     console.log('on', res);
+        //     res.addEventListener(event, () => trace(cbText));
+        //   });
+      };
       const traceExec = pyodide.current?.globals.get('trace_exec') as TraceExec;
       if (!traceExec) return;
 
-      const out = traceExec(pySrc, reportRecord, userGlobals.current);
-      return (userGlobals.current = out);
+      try {
+        userGlobals.current = traceExec(
+          pySrc,
+          reportRecord,
+          setCallback,
+          userGlobals.current
+        );
+      } catch (e) {
+        alert(e);
+      } finally {
+        return userGlobals.current;
+      }
     },
     [send, userGlobals]
   );
@@ -71,12 +102,20 @@ const App: React.FC = () => {
   const executePython = React.useCallback(() => {
     if (!pyodideInitialized) return;
     if (current.value == 'stopped') {
+      userCallbacks.current = [];
       trace(pythonSource);
       setIFrameSource(htmlSource);
     } else {
       send('NEXT');
     }
-  }, [current, send, setIFrameSource, pythonSource, htmlSource, pyodideInitialized]);
+  }, [
+    current,
+    send,
+    setIFrameSource,
+    pythonSource,
+    htmlSource,
+    pyodideInitialized,
+  ]);
 
   const onPlayToEnd = React.useCallback(() => send('STOP'), [send]);
 
@@ -89,23 +128,19 @@ const App: React.FC = () => {
 
   const checkPythonSource = React.useCallback(
     (source) => {
-      try {
-        pyodide.current?.runPython(source);
+      const checker = pyodide.current?.globals.get(
+        'check_syntax'
+      ) as SyntaxChecker;
+      if (!checker) return;
 
-        // If we have an existing error flagged from a previous execution, remove it.
-        if (pythonError) {
-          setPythonError(undefined);
+      const e = checker(source);
+      const err = e && JSON.parse(e);
+
+      setPythonError(
+        err && {
+          lineNumber: err.lineno as number,
         }
-      } catch (err) {
-        if (
-          err instanceof Error &&
-          err.name === pyodide.current?.PythonError.name
-        ) {
-          setPythonError({
-            lineNumber: getExceptionLineNumber(err.message),
-          });
-        }
-      }
+      );
     },
     [pythonError]
   );
@@ -121,10 +156,10 @@ const App: React.FC = () => {
         />
       </div>
       <div className={styles.panel}>
-        <Document 
-          traceData={{ id: 'frame', trace }} 
-          srcDoc={iframeSource} 
-          blurred={current.value === 'idle'} 
+        <Document
+          traceData={{ id: 'frame', trace, callbacks: userCallbacks.current }}
+          srcDoc={iframeSource}
+          blurred={current.value === 'idle'}
         />
       </div>
       <div className={styles.panel}>
@@ -138,15 +173,14 @@ const App: React.FC = () => {
           error={pythonError}
           debuggerLine={debuggerLine}
         />
-        {pyodideInitialized 
-          ? <DebuggerControls
+        {pyodideInitialized ? (
+          <DebuggerControls
             onExecute={executePython}
             onPlayToEnd={onPlayToEnd}
             executing={current.value == 'idle'}
             error={pythonError}
           />
-          : null
-        }
+        ) : null}
       </div>
       <div className={styles.panel}>
         <Console stdout={stdout} stderr={stderr} />

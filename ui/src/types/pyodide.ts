@@ -16,9 +16,12 @@ export interface PyProxy {
   [Symbol.iterator]: () => { next: () => { value: string } };
 }
 
+export type SyntaxChecker = (code: string) => string | undefined;
+
 export type TraceExec = (
   code: string,
   reporter: (json: string) => void,
+  setCallback: (selector: string, event: string, cb: string) => void,
   globals?: PyProxy
 ) => PyProxy;
 

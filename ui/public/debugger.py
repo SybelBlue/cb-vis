@@ -1,5 +1,7 @@
 from typing import *
 
+import ast
+
 from io import StringIO
 from functools import partialmethod
 from types import FrameType
@@ -82,9 +84,9 @@ class Debugger(Bdb):
     user_exception = partialmethod(user, ExceptionTraceData)
 
 
-def trace_exec(code, report_record, gs=None):
+def trace_exec(code, report_record, set_callback, gs=None):
     record = list()
-    gs = gs or dict()
+    gs = gs or { 'set_callback': set_callback }
     std = StringIO(), StringIO()
 
     def log(x: TraceData):
@@ -101,6 +103,19 @@ def trace_exec(code, report_record, gs=None):
     return gs
 
 
+def check_syntax(code):
+    try:
+        ast.parse(code)
+        return None
+    except SyntaxError as e:
+        return safe_serialize({
+            'class': e.__class__,
+            'lineno': e.lineno,
+            'filename': e.filename,
+            'msg': e.msg
+        }) 
+
+
 def __main__():
     def print_record(record):
         for r in record:
@@ -112,4 +127,5 @@ def __main__():
 
 
 if __name__ == '__main__':
+    check_syntax(', x = 3')
     __main__()
