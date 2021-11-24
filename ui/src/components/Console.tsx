@@ -1,4 +1,5 @@
 import * as React from 'react';
+import cs from 'classnames';
 
 import TerminalIcon from '../assets/terminal.svg';
 
@@ -46,7 +47,10 @@ const Console: React.FC<Props> = ({ stdout, stderr }) => {
         ? stdErrStatements.map((statement, i) => (
             <p
               key={`${statement}-${i}`}
-              className={`${styles['console__stmt']} ${styles['console__stmt--stderr']}`}
+              className={cs(
+                styles['console__stmt'],
+                styles['console__stmt--stderr']
+              )}
             >
               {InputIcon}
               {statement}
