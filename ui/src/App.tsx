@@ -5,16 +5,17 @@ import { useMachine } from '@xstate/react';
 import Editor from './components/Editor';
 import DebuggerControls from './components/DebuggerControls';
 import Document from './components/Document';
+import { documentAtom, iframeAtom, programAtom } from './atoms/editor-atoms';
+import type { Pyodide, PyProxy, TraceData, TraceExec, TraceFn } from './types/pyodide';
 import Console from './components/Console';
-import { documentAtom, programAtom } from './atoms/editor-atoms';
 import { getExceptionLineNumber } from './helpers/traceback';
-import type { Pyodide, PyProxy, TraceData, TraceExec } from './types/pyodide';
 import type { EditorError } from './types/editor';
 import styles from './App.module.css';
 import { debuggerMachine, currentTrace } from './helpers/debugger-fsm';
 
 const App: React.FC = () => {
   const [htmlSource, setHtmlSource] = useAtom(documentAtom);
+  const [iframeSource, setIFrameSource] = useAtom(iframeAtom);
   const [pythonSource, setPythonSource] = useAtom(programAtom);
 
   const pyodide = React.useRef<Pyodide | null>(null);
@@ -46,64 +47,45 @@ const App: React.FC = () => {
 
   const [current, send] = useMachine(debuggerMachine);
 
-  const getNames = (ctxt: PyProxy): string[] => {
-    const localNames: string[] = [];
-    for (const x of ctxt) localNames.push(x);
-    return localNames;
-  };
+  const trace: TraceFn = React.useCallback(
+    (pySrc: string, ignoreFirst: boolean = false) => {
+      const reportRecord = (json: string): void => {
+        let traceData = (JSON.parse(json) as TraceData[]);
+        
+        if (ignoreFirst) {
+          const firstFrame = traceData.shift()?.frame;
+          traceData = traceData.filter((t: TraceData) => t.frame != firstFrame);
+        }
+
+        send({ type: 'LOAD', payload: traceData });
+      };
+      const traceExec = pyodide.current?.globals.get('trace_exec') as TraceExec;
+      if (!traceExec) return;
+
+      const out = traceExec(pySrc, reportRecord, userGlobals.current);
+      return (userGlobals.current = out);
+    },
+    [send, userGlobals]
+  );
 
   const executePython = React.useCallback(() => {
+    if (!pyodideInitialized) return;
     if (current.value == 'stopped') {
-      const reportRecord = (json: string): void => {
-        const traceData = JSON.parse(json) as TraceData[];
-        const next = send({ type: 'LOAD', payload: traceData });
-        // eslint-disable-next-line no-console
-        console.log('loaded', next);
-      };
-
-      try {
-        const traceExec = pyodide.current?.globals.get(
-          'trace_exec'
-        ) as TraceExec;
-        if (traceExec) {
-          userGlobals.current = traceExec(
-            pythonSource,
-            reportRecord,
-            userGlobals.current
-          );
-          // eslint-disable-next-line no-console
-          console.log('local names', getNames(userGlobals.current));
-        }
-      } catch (err) {
-        // FATAL CRASH?
-        // if (
-        //   err instanceof Error &&
-        //   err.name === pyodide.current?.PythonError.name
-        // ) {
-        //   setPythonError({
-        //     lineNumber: getExceptionLineNumber(err.message),
-        //   });
-        // }
-      }
+      trace(pythonSource);
+      setIFrameSource(htmlSource);
     } else {
-      const next = send('NEXT');
-      // eslint-disable-next-line no-console
-      console.log('advanced', next);
+      send('NEXT');
     }
-  }, [current, send, pythonSource, userGlobals]);
+  }, [current, send, setIFrameSource, pythonSource, htmlSource, pyodideInitialized]);
 
-  const onPlayToEnd = React.useCallback(() => {
-    const next = send('STOP');
-    // eslint-disable-next-line no-console
-    console.log('stopped', next);
-  }, [send]);
+  const onPlayToEnd = React.useCallback(() => send('STOP'), [send]);
 
-  const trace = currentTrace(current.context);
+  const currentTraceData = currentTrace(current.context);
 
   const debuggerLine =
-    current.value == 'stopped' ? undefined : trace?.frame.lineno;
-  const stdout = trace?.stdout ?? '';
-  const stderr = trace?.stderr ?? '';
+    current.value == 'stopped' ? undefined : currentTraceData?.frame.lineno;
+  const stdout = currentTraceData?.stdout ?? '';
+  const stderr = currentTraceData?.stderr ?? '';
 
   const checkPythonSource = React.useCallback(
     (source) => {
@@ -139,7 +121,11 @@ const App: React.FC = () => {
         />
       </div>
       <div className={styles.panel}>
-        <Document srcDoc={htmlSource} blurred={current.value === 'idle'} />
+        <Document 
+          traceData={{ id: 'frame', trace }} 
+          srcDoc={iframeSource} 
+          blurred={current.value === 'idle'} 
+        />
       </div>
       <div className={styles.panel}>
         <Editor
@@ -152,12 +138,15 @@ const App: React.FC = () => {
           error={pythonError}
           debuggerLine={debuggerLine}
         />
-        <DebuggerControls
-          onExecute={executePython}
-          onPlayToEnd={onPlayToEnd}
-          executing={current.value == 'idle'}
-          error={pythonError}
-        />
+        {pyodideInitialized 
+          ? <DebuggerControls
+            onExecute={executePython}
+            onPlayToEnd={onPlayToEnd}
+            executing={current.value == 'idle'}
+            error={pythonError}
+          />
+          : null
+        }
       </div>
       <div className={styles.panel}>
         <Console stdout={stdout} stderr={stderr} />

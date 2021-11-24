@@ -41,10 +41,13 @@ const debuggerMachine = createMachine<Context, Event>(
         },
       },
       idle: {
-        always: [{ target: 'stopped', cond: 'finishedPlayback' }],
+        always: [
+          { target: 'stopped', cond: 'finishedPlayback' },
+          { target: 'idle', cond: 'isReturn', actions: ['next'] },
+        ],
         on: {
           NEXT: {
-            actions: ['next', 'logCurrent'],
+            actions: ['next'],
           },
           PREV: {
             actions: ['prev'],
@@ -67,6 +70,7 @@ const debuggerMachine = createMachine<Context, Event>(
     },
     guards: {
       finishedPlayback: (ctxt) => ctxt.data.length == ctxt.index,
+      isReturn: (ctxt) => currentTrace(ctxt)?.type === 'return',
     },
   }
 );
