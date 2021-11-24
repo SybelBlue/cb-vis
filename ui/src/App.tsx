@@ -121,7 +121,11 @@ const App: React.FC = () => {
         />
       </div>
       <div className={styles.panel}>
-        <Document traceData={{ id: 'frame', trace }} srcDoc={iframeSource} />
+        <Document 
+          traceData={{ id: 'frame', trace }} 
+          srcDoc={iframeSource} 
+          blurred={current.value === 'idle'} 
+        />
       </div>
       <div className={styles.panel}>
         <Editor

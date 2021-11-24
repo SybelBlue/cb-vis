@@ -3,14 +3,17 @@ import { useEffect } from 'react';
 
 import { TraceFn } from '../types/pyodide';
 
+import cs from 'classnames';
+
 import styles from './Document.module.css';
 
 interface Props {
   srcDoc: string;
   traceData?: { id: string; trace: TraceFn };
+  blurred: boolean;
 }
 
-const Document: React.FC<Props> = ({ srcDoc, traceData }) => {
+const Document: React.FC<Props> = ({ srcDoc, traceData, blurred }) => {
   useEffect(() => {
     // eslint-disable-next-line prefer-const, @typescript-eslint/no-unused-vars
     let isMounted = true;
@@ -37,13 +40,20 @@ const Document: React.FC<Props> = ({ srcDoc, traceData }) => {
       });
     }
   });
+  
   return (
-    <iframe
-      id={traceData?.id}
-      className={styles.document}
-      title="document"
-      srcDoc={srcDoc}
-    />
+    <>
+      <iframe
+        id={traceData?.id}
+        className={cs(
+          styles['document'],
+          blurred && styles['document--blurred']
+        )}
+        title="document"
+        srcDoc={srcDoc}
+      />
+      {blurred ? <div className={styles['document__overlay']} /> : null}
+    </>
   );
 };
 
