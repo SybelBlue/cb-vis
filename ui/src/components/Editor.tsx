@@ -36,7 +36,7 @@ const Editor: React.FC<Props> = ({ source, setSource, mode, error, debuggerLine 
             startCol: 1,
             endRow: debuggerLine - 1,
             endCol: 2,
-            className: 'debugger-cursor',
+            className: styles['debugger-cursor'],
             type: 'fullLine',
           },
         ];

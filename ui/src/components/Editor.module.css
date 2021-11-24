@@ -4,3 +4,9 @@
   top: var(--spacing-sm);
   right: var(--spacing-sm);
 }
+
+.debugger-cursor {
+  position: absolute;
+  background-color: rgba(99, 105, 45, 0.534);
+  z-index: 20;
+}
