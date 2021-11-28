@@ -22,6 +22,7 @@ export type TraceExec = (
   code: string,
   reporter: (json: string) => void,
   setCallback: (selector: string, event: string, cb: object) => void,
+  append: (selector: string, html: string) => void,
   globals?: PyProxy
 ) => PyProxy;
 

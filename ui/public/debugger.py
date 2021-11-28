@@ -84,9 +84,9 @@ class Debugger(Bdb):
     user_exception = partialmethod(user, ExceptionTraceData)
 
 
-def trace_exec(code, report_record, set_callback, gs=None):
+def trace_exec(code, report_record, set_callback, append, gs=None):
     record = list()
-    gs = gs or { 'set_callback': set_callback }
+    gs = gs or { 'set_callback': set_callback, 'append_to': append }
     std = StringIO(), StringIO()
 
     def log(x: TraceData):

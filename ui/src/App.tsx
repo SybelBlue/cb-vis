@@ -22,6 +22,8 @@ import styles from './App.module.css';
 import { debuggerMachine, currentTrace } from './helpers/debugger-fsm';
 
 const App: React.FC = () => {
+  const frameId = 'frame';
+
   const [htmlSource, setHtmlSource] = useAtom(documentAtom);
   const [iframeSource, setIFrameSource] = useAtom(iframeAtom);
   const [pythonSource, setPythonSource] = useAtom(programAtom);
@@ -64,27 +66,31 @@ const App: React.FC = () => {
 
         if (ignoreFirst) {
           const firstFrame = traceData.shift()?.frame;
-          traceData = traceData.filter((t: TraceData) => t.frame != firstFrame);
+          traceData = traceData.filter((t: TraceData) => t.frame !== firstFrame);
         }
 
         send({ type: 'LOAD', payload: traceData });
       };
-      const setCallback = (selector: string, event: string, cb: object) => {
+      const convertCallback = (cb: object) => {
+
         const casted = cb as { __name__?: string };
         if (
-          typeof selector !== 'string' ||
-          typeof event !== 'string' ||
           !cb ||
           (typeof cb !== 'string' && typeof casted.__name__ !== 'string')
         ) {
           alert(
-            'TypeError: set_callback(s, e, cb) requires s and e to be strs, and cb to a named function or str'
+            'TypeError: callback must be a named function or str'
           );
           return;
         }
-        const cbText = casted.__name__ ? casted.__name__ + '()' : cb.toString();
-        userCallbacks.current.push({ selector, event, cb: cbText });
+        return casted.__name__ ? casted.__name__ + '()' : cb.toString();
+      }
+      const setCallback = (selector: string, event: string, callback: object) => {
+        const cb = convertCallback(callback);
+        cb && userCallbacks.current.push({ selector, event, cb });
       };
+      const append = (selector: string, html: string) => 
+        $('#' + frameId).contents().find(selector).append(html);
       const traceExec = pyodide.current?.globals.get('trace_exec') as TraceExec;
       if (!traceExec) return;
 
@@ -93,6 +99,7 @@ const App: React.FC = () => {
           pySrc,
           reportRecord,
           setCallback,
+          append,
           userGlobals.current
         );
       } catch (e) {
@@ -106,7 +113,7 @@ const App: React.FC = () => {
 
   const executePython = React.useCallback(() => {
     if (!pyodideInitialized) return;
-    if (current.value == 'stopped') {
+    if (current.value === 'stopped') {
       userCallbacks.current = [];
       trace(pythonSource);
       setIFrameSource(htmlSource);
@@ -162,7 +169,7 @@ const App: React.FC = () => {
       </div>
       <div className={styles.panel}>
         <Document
-          traceData={{ id: 'frame', trace, callbacks: userCallbacks.current }}
+          traceData={{ id: frameId, trace, callbacks: userCallbacks.current }}
           srcDoc={iframeSource}
           blurred={current.value === 'idle'}
         />
