@@ -66,31 +66,37 @@ const App: React.FC = () => {
 
         if (ignoreFirst) {
           const firstFrame = traceData.shift()?.frame;
-          traceData = traceData.filter((t: TraceData) => t.frame !== firstFrame);
+          traceData = traceData.filter(
+            (t: TraceData) => t.frame !== firstFrame
+          );
         }
 
         send({ type: 'LOAD', payload: traceData });
       };
       const convertCallback = (cb: object) => {
-
         const casted = cb as { __name__?: string };
         if (
           !cb ||
           (typeof cb !== 'string' && typeof casted.__name__ !== 'string')
         ) {
-          alert(
-            'TypeError: callback must be a named function or str'
-          );
+          alert('TypeError: callback must be a named function or str');
           return;
         }
         return casted.__name__ ? casted.__name__ + '()' : cb.toString();
-      }
-      const setCallback = (selector: string, event: string, callback: object) => {
+      };
+      const setCallback = (
+        selector: string,
+        event: string,
+        callback: object
+      ) => {
         const cb = convertCallback(callback);
         cb && userCallbacks.current.push({ selector, event, cb });
       };
-      const append = (selector: string, html: string) => 
-        $('#' + frameId).contents().find(selector).append(html);
+      const append = (selector: string, html: string) =>
+        $('#' + frameId)
+          .contents()
+          .find(selector)
+          .append(html);
       const traceExec = pyodide.current?.globals.get('trace_exec') as TraceExec;
       if (!traceExec) return;
 
@@ -103,7 +109,7 @@ const App: React.FC = () => {
           userGlobals.current
         );
       } catch (e) {
-        alert((e as { message: string; }).message);
+        alert((e as { message: string }).message);
       } finally {
         return userGlobals.current;
       }
