@@ -21,7 +21,7 @@ export type SyntaxChecker = (code: string) => string | undefined;
 export type TraceExec = (
   code: string,
   reporter: (json: string) => void,
-  setCallback: (selector: string, event: string, cb: string) => void,
+  setCallback: (selector: string, event: string, cb: object) => void,
   globals?: PyProxy
 ) => PyProxy;
 

@@ -28,7 +28,9 @@ const App: React.FC = () => {
 
   const pyodide = React.useRef<Pyodide | null>(null);
   const userGlobals = React.useRef<PyProxy | undefined>(undefined);
-  const userCallbacks = React.useRef<{ selector: string; event: string; cb: string }[]>([]);
+  const userCallbacks = React.useRef<
+    { selector: string; event: string; cb: string }[]
+  >([]);
   const [pyodideInitialized, setPyodideInitialized] = React.useState(false);
   const [pythonError, setPythonError] = React.useState<EditorError>();
 
@@ -67,18 +69,21 @@ const App: React.FC = () => {
 
         send({ type: 'LOAD', payload: traceData });
       };
-      const setCallback = (selector: string, event: string, cb: string) => {
-        const cbText = cb.__name__ ? cb.__name__ + '()' : cb;
-        console.log('set callback', selector, event, cbText);
+      const setCallback = (selector: string, event: string, cb: object) => {
+        const casted = cb as { __name__?: string };
+        if (
+          typeof selector !== 'string' ||
+          typeof event !== 'string' ||
+          !cb ||
+          (typeof cb !== 'string' && typeof casted.__name__ !== 'string')
+        ) {
+          alert(
+            'TypeError: set_callback(s, e, cb) requires s and e to be strs, and cb to a named function or str'
+          );
+          return;
+        }
+        const cbText = casted.__name__ ? casted.__name__ + '()' : cb.toString();
         userCallbacks.current.push({ selector, event, cb: cbText });
-        // $('#frame')
-        //   .contents()
-        //   .find(selector)
-        //   .toArray()
-        //   .forEach((res) => {
-        //     console.log('on', res);
-        //     res.addEventListener(event, () => trace(cbText));
-        //   });
       };
       const traceExec = pyodide.current?.globals.get('trace_exec') as TraceExec;
       if (!traceExec) return;
@@ -91,7 +96,7 @@ const App: React.FC = () => {
           userGlobals.current
         );
       } catch (e) {
-        alert(e);
+        alert((e as { message: string; }).message);
       } finally {
         return userGlobals.current;
       }
