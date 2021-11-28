@@ -163,6 +163,19 @@ const App: React.FC = () => {
     [pythonError]
   );
 
+  const enterEditing = React.useCallback(() => {
+    userGlobals.current = undefined;
+    send('STOP');
+    setIFrameSource('');
+  }, [send, userGlobals, setIFrameSource]);
+
+  const mode =
+    current.value === 'idle'
+      ? 'debug'
+      : userGlobals.current
+      ? 'locked'
+      : 'edit';
+
   return (
     <>
       <div className={styles.panel}>
@@ -170,7 +183,7 @@ const App: React.FC = () => {
           source={htmlSource}
           setSource={setHtmlSource}
           mode="html"
-          debuggerLine={debuggerLine}
+          debuggerLine={debuggerLine || (userGlobals.current && 0)}
         />
       </div>
       <div className={styles.panel}>
@@ -189,13 +202,14 @@ const App: React.FC = () => {
           }}
           mode="python"
           error={pythonError}
-          debuggerLine={debuggerLine}
+          debuggerLine={debuggerLine || (userGlobals.current && 0)}
         />
         {pyodideInitialized ? (
           <DebuggerControls
+            onEdit={enterEditing}
             onExecute={executePython}
             onPlayToEnd={onPlayToEnd}
-            executing={current.value == 'idle'}
+            mode={mode}
             error={pythonError}
           />
         ) : null}

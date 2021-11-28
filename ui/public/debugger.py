@@ -122,7 +122,7 @@ def __main__():
             print(safe_serialize(r))
 
     from os.path import join, split
-    with open(join(split(__file__)[0], 'test/dummy_editor.py'), 'r') as f:
+    with open(join(split(__file__)[0], '../../test/dummy_editor.py'), 'r') as f:
         return trace_exec(f.read(), print_record)
 
 
