@@ -16,7 +16,6 @@ import type {
   TraceFn,
 } from './types/pyodide';
 import Console from './components/Console';
-import { getExceptionLineNumber } from './helpers/traceback';
 import type { EditorError } from './types/editor';
 import styles from './App.module.css';
 import { debuggerMachine, currentTrace } from './helpers/debugger-fsm';
@@ -79,7 +78,7 @@ const App: React.FC = () => {
           !cb ||
           (typeof cb !== 'string' && typeof casted.__name__ !== 'string')
         ) {
-          alert('TypeError: callback must be a named function or str');
+          alert('TypeError: callback must be a named function or str, not ' + typeof cb);
           return;
         }
         return casted.__name__ ? casted.__name__ + '()' : cb.toString();
@@ -101,6 +100,7 @@ const App: React.FC = () => {
       if (!traceExec) return;
 
       try {
+        userCallbacks.current = [];
         userGlobals.current = traceExec(
           pySrc,
           reportRecord,
@@ -120,7 +120,6 @@ const App: React.FC = () => {
   const executePython = React.useCallback(() => {
     if (!pyodideInitialized) return;
     if (current.value === 'stopped') {
-      userCallbacks.current = [];
       trace(pythonSource);
       setIFrameSource(htmlSource);
     } else {

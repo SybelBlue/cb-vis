@@ -27,7 +27,7 @@ const Document: React.FC<Props> = ({ srcDoc, traceData, blurred }) => {
           .find(c.selector)
           .toArray()
           .forEach((res) =>
-            res.addEventListener(c.event, () => traceData.trace(c.cb))
+            res.addEventListener(c.event, () => traceData.trace(c.cb, true))
           );
       });
       innerDoc
