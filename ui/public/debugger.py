@@ -86,7 +86,7 @@ class Debugger(Bdb):
 
 def trace_exec(code, report_record, set_callback, append, gs=None):
     record = list()
-    gs = gs or { 'set_callback': set_callback, 'append_to': append }
+    gs = gs or {'set_callback': set_callback, 'append_to': append}
     std = StringIO(), StringIO()
 
     def log(x: TraceData):
@@ -109,23 +109,37 @@ def check_syntax(code):
         return None
     except SyntaxError as e:
         return safe_serialize({
-            'class': e.__class__,
+            'class': e.__class__.__name__,
             'lineno': e.lineno,
             'filename': e.filename,
             'msg': e.msg
-        }) 
+        })
 
 
 def __main__():
-    def print_record(record):
-        for r in record:
-            print(safe_serialize(r))
-
+    from json import loads
     from os.path import join, split
-    with open(join(split(__file__)[0], '../../test/dummy_editor.py'), 'r') as f:
-        return trace_exec(f.read(), print_record)
+
+    def print_record(record):
+        indent = 0
+        for r in loads(record):
+            for k, v in r.items():
+                print('  ' * indent, k, '=', repr(v))
+            if r['type'] == 'return':
+                indent -= 1
+            if r['type'] == 'call':
+                indent += 1
+            print()
+
+    test_path = '../../test/dummy_editor.py'
+    with open(join(split(__file__)[0], test_path), 'r') as f:
+        code = f.read()
+    
+    if e := check_syntax(code):
+        raise SyntaxError(loads(e))
+    
+    trace_exec(code, print_record, None, None, dict())
 
 
 if __name__ == '__main__':
-    check_syntax(', x = 3')
     __main__()
