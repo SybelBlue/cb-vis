@@ -1,14 +1,12 @@
-from typing import *
-
-import ast
-
-from io import StringIO
-from functools import partialmethod
-from types import FrameType
-from dataclasses import fields, dataclass
+from ast import parse
 from bdb import Bdb
+from contextlib import redirect_stderr, redirect_stdout
+from dataclasses import dataclass, fields
+from functools import partialmethod
+from io import StringIO
 from json import dumps
-from contextlib import redirect_stdout, redirect_stderr
+from types import FrameType
+from typing import Any, Callable, Iterable
 
 
 def safe_serialize(obj, first_call=True):
@@ -105,7 +103,7 @@ def trace_exec(code, report_record, set_callback, append, gs=None):
 
 def check_syntax(code):
     try:
-        ast.parse(code)
+        parse(code)
         return None
     except SyntaxError as e:
         return safe_serialize({
@@ -134,10 +132,10 @@ def __main__():
     test_path = '../../test/dummy_editor.py'
     with open(join(split(__file__)[0], test_path), 'r') as f:
         code = f.read()
-    
+
     if e := check_syntax(code):
         raise SyntaxError(loads(e))
-    
+
     trace_exec(code, print_record, None, None, dict())
 
 
