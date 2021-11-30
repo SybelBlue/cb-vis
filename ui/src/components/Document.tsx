@@ -22,14 +22,6 @@ const Document: React.FC<Props> = ({ srcDoc, traceData, blurred }) => {
     let isMounted = true;
     if (traceData) {
       const innerDoc = $('#' + traceData.id).contents();
-      traceData.callbacks.forEach((c) => {
-        innerDoc
-          .find(c.selector)
-          .toArray()
-          .forEach((res) =>
-            res.addEventListener(c.event, () => traceData.trace(c.cb, true))
-          );
-      });
       innerDoc
         .find('*')
         .toArray()
@@ -54,8 +46,16 @@ const Document: React.FC<Props> = ({ srcDoc, traceData, blurred }) => {
             }
           }
         });
+      traceData.callbacks.forEach((c) =>
+        innerDoc
+          .find(c.selector)
+          .toArray()
+          .forEach((res) =>
+            res.addEventListener(c.event, () => traceData.trace(c.cb, true))
+          )
+      );
     }
-  });
+  }, [blurred]);
 
   return (
     <>
