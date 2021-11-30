@@ -55,6 +55,11 @@ const debuggerMachine = createMachine<Context, Event>(
           STOP: {
             target: 'stopped',
           },
+          LOAD: {
+            actions: assign((ctxt, e) => ({
+              data: [...ctxt.data, ...e.payload],
+            })),
+          },
         },
       },
     },
@@ -69,7 +74,7 @@ const debuggerMachine = createMachine<Context, Event>(
       },
     },
     guards: {
-      finishedPlayback: (ctxt) => ctxt.data.length == ctxt.index,
+      finishedPlayback: (ctxt) => ctxt.data.length === ctxt.index,
       isReturn: (ctxt) => currentTrace(ctxt)?.type === 'return',
     },
   }
