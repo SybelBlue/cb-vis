@@ -24,6 +24,13 @@ const delta = (d: number): AssignAction<Context, Event> =>
 const currentTrace = (ctxt: Context): TraceData | undefined =>
   ctxt.data[ctxt.index];
 
+const append = (
+  ctxt: Context,
+  e: { type: 'LOAD'; payload: TraceData[] }
+): Partial<Context> => ({
+  data: [...ctxt.data, ...e.payload],
+});
+
 const debuggerMachine = createMachine<Context, Event>(
   {
     context: { index: 0, data: [] },
@@ -31,13 +38,7 @@ const debuggerMachine = createMachine<Context, Event>(
     states: {
       stopped: {
         on: {
-          LOAD: {
-            target: 'idle',
-            actions: assign((_ctxt, e) => ({
-              index: 0,
-              data: e.payload,
-            })),
-          },
+          LOAD: { target: 'idle', actions: assign(append) },
         },
       },
       idle: {
@@ -46,20 +47,10 @@ const debuggerMachine = createMachine<Context, Event>(
           { target: 'idle', cond: 'isReturn', actions: ['next'] },
         ],
         on: {
-          NEXT: {
-            actions: ['next'],
-          },
-          PREV: {
-            actions: ['prev'],
-          },
-          STOP: {
-            target: 'stopped',
-          },
-          LOAD: {
-            actions: assign((ctxt, e) => ({
-              data: [...ctxt.data, ...e.payload],
-            })),
-          },
+          NEXT: { actions: 'next' },
+          PREV: { actions: 'prev' },
+          STOP: { target: 'stopped' },
+          LOAD: { actions: assign(append) },
         },
       },
     },
@@ -68,10 +59,6 @@ const debuggerMachine = createMachine<Context, Event>(
     actions: {
       next: delta(1),
       prev: delta(-1),
-      logCurrent: (ctxt) => {
-        // eslint-disable-next-line no-console
-        console.log(currentTrace(ctxt));
-      },
     },
     guards: {
       finishedPlayback: (ctxt) => ctxt.data.length === ctxt.index,
